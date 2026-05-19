@@ -213,7 +213,7 @@ function App() {
 
     if (!window.isSecureContext) {
       setLastError(
-        "Mikrofonla pratik için localhost veya HTTPS gerekir. Bu sunucu önizlemesi arayüzü gösterir; ses analizi için HTTPS açmalıyız."
+        "Mikrofonla pratik için bu HTTP adresi yerine http://localhost:8093 adresini aç. SSH tüneli üzerinden aynı sunucu uygulaması güvenli localhost olarak çalışır."
       );
       window.scrollTo({ left: 0, top: window.scrollY });
       return;

@@ -39,4 +39,24 @@
   .icon-button {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-md border border-line bg-ink/80 text-slate-100 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-800 active:translate-y-0;
   }
+
+  .tab-player-viewport {
+    @apply max-h-[340px] overflow-x-auto overflow-y-hidden;
+    scrollbar-color: #35e39b #17212c;
+    scrollbar-width: thin;
+  }
+
+  .tab-player-viewport::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .tab-player-viewport::-webkit-scrollbar-track {
+    background: #17212c;
+  }
+
+  .tab-player-viewport::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #35e39b, #7dd3fc);
+    border: 2px solid #17212c;
+    border-radius: 999px;
+  }
 }

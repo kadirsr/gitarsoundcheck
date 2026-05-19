@@ -98,14 +98,37 @@ export function InteractiveGrid({
           </button>
         </div>
       </div>
-      <div className="overflow-auto rounded-md border border-line bg-ink/95 shadow-xl shadow-black/20">
+      <div className="flex items-center justify-between rounded-t-md border border-b-0 border-line bg-ink/95 px-3 py-2">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Sekme oynatıcı</p>
+          <p className="text-sm text-slate-300">
+            Adım {currentStep === null ? "01" : String(currentStep + 1).padStart(2, "0")}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: Math.min(grid.stepCount, 16) }, (_, index) => (
+            <span
+              className={[
+                "h-1.5 w-5 rounded-full transition",
+                currentStep === index
+                  ? "bg-sky-300"
+                  : index < (currentStep ?? 0)
+                    ? "bg-action"
+                    : "bg-slate-600"
+              ].join(" ")}
+              key={index}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="tab-player-viewport rounded-b-md border border-line bg-ink/95 shadow-xl shadow-black/20">
         <div
           className="grid min-w-max"
           style={{
-            gridTemplateColumns: `56px repeat(${grid.stepCount}, minmax(40px, 40px))`
+            gridTemplateColumns: `64px repeat(${grid.stepCount}, minmax(44px, 44px))`
           }}
         >
-          <div className="sticky left-0 z-10 border-b border-r border-line bg-ink px-2 py-2 text-xs text-slate-300">
+          <div className="sticky left-0 z-20 border-b border-r border-line bg-ink px-3 py-2 text-xs text-slate-300">
             Adım
           </div>
           {Array.from({ length: grid.stepCount }, (_, index) => (
@@ -179,7 +202,7 @@ function Row({
 }: RowProps) {
   return (
     <>
-      <div className="sticky left-0 z-10 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-slate-200">
+      <div className="sticky left-0 z-20 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-slate-200">
         {stringLabel}
       </div>
       {grid.cells[stringName].map((fret, stepIndex) => {
@@ -197,7 +220,7 @@ function Row({
         });
 
         return (
-          <div className="relative h-10 border-b border-r border-line" key={`${stringName}-${stepIndex}`}>
+          <div className="relative h-11 border-b border-r border-line" key={`${stringName}-${stepIndex}`}>
             <button
               className={`h-full w-full font-mono text-sm transition ${statusClass}`}
               type="button"
