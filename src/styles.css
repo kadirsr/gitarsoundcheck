@@ -3,9 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  html,
   body {
     margin: 0;
     background: #1b2a38;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 

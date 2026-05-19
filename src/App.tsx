@@ -211,8 +211,17 @@ function App() {
       return;
     }
 
+    if (!window.isSecureContext) {
+      setLastError(
+        "Microphone needs localhost or HTTPS. This server preview can show the app, but audio practice needs HTTPS."
+      );
+      window.scrollTo({ left: 0, top: window.scrollY });
+      return;
+    }
+
     setPracticeState((current) => startPractice(current));
     await startAudio();
+    window.scrollTo({ left: 0, top: window.scrollY });
   }
 
   function handleStop() {
@@ -231,10 +240,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-ink text-slate-100">
+    <div className="min-h-screen overflow-x-hidden bg-ink text-slate-100">
       <Header />
-      <main className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-5">
+      <main className="mx-auto grid max-w-7xl gap-5 overflow-x-hidden px-4 py-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5">
           <section className="rounded border border-line bg-panel p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-64 flex-1">
