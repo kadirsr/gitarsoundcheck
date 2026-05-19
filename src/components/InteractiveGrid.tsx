@@ -1,4 +1,5 @@
 import { Eraser, Minus, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { GUITAR_STRINGS, MAX_STEP_COUNT, MIN_STEP_COUNT } from "../constants";
 import type { GuitarString, TabGrid } from "../types";
 
@@ -29,6 +30,37 @@ export function InteractiveGrid({
   onResize,
   onClear
 }: Props) {
+  const [editorCell, setEditorCell] = useState<{
+    stringName: GuitarString;
+    stepIndex: number;
+  } | null>(null);
+  const [draftFret, setDraftFret] = useState("");
+
+  function openEditor(stringName: GuitarString, stepIndex: number, fret: number | null) {
+    onSelectCell(stringName, stepIndex);
+    setEditorCell({ stringName, stepIndex });
+    setDraftFret(fret?.toString() ?? "");
+  }
+
+  function closeEditor() {
+    setEditorCell(null);
+    setDraftFret("");
+  }
+
+  function commitEditor() {
+    if (!editorCell) {
+      return;
+    }
+
+    const trimmed = draftFret.trim();
+    onSetNote(
+      editorCell.stringName,
+      editorCell.stepIndex,
+      trimmed === "" ? null : Number.parseInt(trimmed, 10)
+    );
+    closeEditor();
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -85,10 +117,14 @@ export function InteractiveGrid({
             <Row
               correctSteps={correctSteps}
               currentStep={currentStep}
+              draftFret={draftFret}
+              editorCell={editorCell}
               grid={grid}
               key={string.name}
-              onSelectCell={onSelectCell}
-              onSetNote={onSetNote}
+              onCloseEditor={closeEditor}
+              onCommitEditor={commitEditor}
+              onDraftFretChange={setDraftFret}
+              onOpenEditor={openEditor}
               selectedCell={selectedCell}
               stringName={string.name}
               stringLabel={string.label}
@@ -113,8 +149,12 @@ type RowProps = {
   correctSteps: Set<number>;
   wrongSteps: Set<number>;
   selectedCell: { stringName: GuitarString; stepIndex: number } | null;
-  onSelectCell: (stringName: GuitarString, stepIndex: number) => void;
-  onSetNote: (stringName: GuitarString, stepIndex: number, fret: number | null) => void;
+  editorCell: { stringName: GuitarString; stepIndex: number } | null;
+  draftFret: string;
+  onOpenEditor: (stringName: GuitarString, stepIndex: number, fret: number | null) => void;
+  onDraftFretChange: (value: string) => void;
+  onCommitEditor: () => void;
+  onCloseEditor: () => void;
 };
 
 function Row({
@@ -125,8 +165,12 @@ function Row({
   correctSteps,
   wrongSteps,
   selectedCell,
-  onSelectCell,
-  onSetNote
+  editorCell,
+  draftFret,
+  onOpenEditor,
+  onDraftFretChange,
+  onCommitEditor,
+  onCloseEditor
 }: RowProps) {
   return (
     <>
@@ -136,6 +180,8 @@ function Row({
       {grid.cells[stringName].map((fret, stepIndex) => {
         const selected =
           selectedCell?.stringName === stringName && selectedCell.stepIndex === stepIndex;
+        const editing =
+          editorCell?.stringName === stringName && editorCell.stepIndex === stepIndex;
         const statusClass = getCellStatusClass({
           hasNote: fret !== null,
           current: currentStep === stepIndex,
@@ -146,31 +192,85 @@ function Row({
         });
 
         return (
-          <button
-            className={`h-10 border-b border-r border-line font-mono text-sm transition ${statusClass}`}
-            key={`${stringName}-${stepIndex}`}
-            type="button"
-            title={`${stringLabel} string step ${stepIndex + 1}`}
-            onClick={() => {
-              onSelectCell(stringName, stepIndex);
-              const input = window.prompt("Fret 0-24. Leave empty to clear.", fret?.toString() ?? "");
-              if (input === null) {
-                return;
-              }
-              const trimmed = input.trim();
-              if (trimmed === "") {
-                onSetNote(stringName, stepIndex, null);
-                return;
-              }
-              const nextFret = Number.parseInt(trimmed, 10);
-              onSetNote(stringName, stepIndex, nextFret);
-            }}
-          >
-            {fret ?? ""}
-          </button>
+          <div className="relative h-10 border-b border-r border-line" key={`${stringName}-${stepIndex}`}>
+            <button
+              className={`h-full w-full font-mono text-sm transition ${statusClass}`}
+              type="button"
+              title={`${stringLabel} string step ${stepIndex + 1}`}
+              onClick={() => onOpenEditor(stringName, stepIndex, fret)}
+            >
+              {fret ?? ""}
+            </button>
+            {editing ? (
+              <FretPicker
+                draftFret={draftFret}
+                onChange={onDraftFretChange}
+                onClose={onCloseEditor}
+                onCommit={onCommitEditor}
+              />
+            ) : null}
+          </div>
         );
       })}
     </>
+  );
+}
+
+function FretPicker({
+  draftFret,
+  onChange,
+  onCommit,
+  onClose
+}: {
+  draftFret: string;
+  onChange: (value: string) => void;
+  onCommit: () => void;
+  onClose: () => void;
+}) {
+  const selectRef = useRef<HTMLSelectElement | null>(null);
+
+  useEffect(() => {
+    selectRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="absolute left-1/2 top-full z-30 mt-2 w-44 -translate-x-1/2 rounded border border-line bg-panel p-2 shadow-2xl shadow-black/30">
+      <label className="mb-1 block text-xs font-medium text-slate-200" htmlFor="fret-picker">
+        Perde
+      </label>
+      <select
+        className="w-full rounded border border-line bg-ink px-2 py-2 text-sm text-slate-50 outline-none focus:ring-2 focus:ring-action/50"
+        id="fret-picker"
+        ref={selectRef}
+        value={draftFret}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            onCommit();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
+      >
+        <option value="">Temizle</option>
+        {Array.from({ length: 25 }, (_, fret) => (
+          <option key={fret} value={fret}>
+            {fret}
+          </option>
+        ))}
+      </select>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button className="primary-button px-2 py-1.5 text-xs" type="button" onClick={onCommit}>
+          Tamam
+        </button>
+        <button className="secondary-button px-2 py-1.5 text-xs" type="button" onClick={onClose}>
+          İptal
+        </button>
+      </div>
+    </div>
   );
 }
 
