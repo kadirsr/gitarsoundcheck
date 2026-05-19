@@ -47,10 +47,16 @@ export function useAudioPitch(minRms: number) {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false
+        }
+      });
       const context = new AudioContext();
       const analyser = context.createAnalyser();
-      analyser.fftSize = 2048;
+      analyser.fftSize = 4096;
 
       const source = context.createMediaStreamSource(stream);
       source.connect(analyser);

@@ -13,3 +13,4 @@
 2026-05-19T16:46:50+03:00 | Sorun şu ki, 32 adım olması problem sonsuza kadar ekledikçe orasının artması lazım. sonuçta 1 şarkı 32 adımdan oluşmuyor.
 2026-05-19T16:55:00+03:00 | şöyle bir şey istiyorum, bpme göre sürekli player aksın, aktığı sürede duyarsa yeşil yapsın beni beklemesin, ama bu 2 moda ayrılsın.
 2026-05-19T17:28:10+03:00 | RMS değişiyor ama dogru notayı çalmama rağmen yeşil olmuyor sorun ne olabilir ? loglama konsola sistem kurabilir miyiz ?
+2026-05-19T17:33:13+03:00 | index-DeiyqN8X.js:155 [TabFlow audio] miss: audio level exists but pitch detector did not lock a frequency ... neymis problem
