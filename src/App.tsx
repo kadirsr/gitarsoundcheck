@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AUTO_EXTEND_STEP_COUNT,
   AUTO_EXTEND_THRESHOLD,
@@ -15,6 +15,11 @@ import { PracticePanel } from "./components/PracticePanel";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { useAudioPitch } from "./hooks/useAudioPitch";
 import { useMetronome } from "./hooks/useMetronome";
+import {
+  loadAudioDebugEnabled,
+  logAudioDebugFrame,
+  saveAudioDebugEnabled
+} from "./lib/audioDebug";
 import {
   clearGrid,
   gridFromAscii,
@@ -67,10 +72,12 @@ function App() {
   } | null>(null);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+  const [audioDebugEnabled, setAudioDebugEnabled] = useState(loadAudioDebugEnabled);
   const [practiceState, setPracticeState] = useState(() =>
     createPracticeState(DEFAULT_SETTINGS.bpm, DEFAULT_SETTINGS.practiceMode)
   );
   const [lastError, setLastError] = useState<string | null>(null);
+  const lastAudioDebugLogRef = useRef(0);
 
   const parseResult = useMemo(() => parseTab(tabText), [tabText]);
   const { frame, status: audioStatus, start: startAudio, stop: stopAudio } = useAudioPitch(
@@ -129,6 +136,24 @@ function App() {
       evaluatePitchFrame(current, parseResult.notes, frame, settings.tolerance)
     );
   }, [frame, parseResult.notes, settings.tolerance]);
+
+  useEffect(() => {
+    if (!audioDebugEnabled || !frame || practiceState.status !== "listening") {
+      return;
+    }
+
+    if (frame.timestamp - lastAudioDebugLogRef.current < 300) {
+      return;
+    }
+
+    lastAudioDebugLogRef.current = frame.timestamp;
+    logAudioDebugFrame({
+      frame,
+      notes: parseResult.notes,
+      practiceState,
+      tolerance: settings.tolerance
+    });
+  }, [audioDebugEnabled, frame, parseResult.notes, practiceState, settings.tolerance]);
 
   useEffect(() => {
     if (practiceState.status !== "listening" || practiceState.mode !== "FLOW") {
@@ -311,6 +336,16 @@ function App() {
     }));
   }
 
+  function updateAudioDebug(enabled: boolean) {
+    setAudioDebugEnabled(enabled);
+    saveAudioDebugEnabled(enabled);
+    if (enabled) {
+      console.info(
+        "[TabFlow audio] Debug enabled. Start practice and watch grouped logs. Recent frames stay in window.__TABFLOW_AUDIO_DEBUG__."
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden text-slate-900">
       <Header />
@@ -412,7 +447,9 @@ function App() {
           onReset={() => setPracticeState(createPracticeState(settings.bpm, settings.practiceMode))}
           onStart={handleStart}
           onStop={handleStop}
+          onAudioDebugChange={updateAudioDebug}
           onToleranceChange={(tolerance: TolerancePreset) => updateSettings({ tolerance })}
+          audioDebugEnabled={audioDebugEnabled}
           pitchFrame={frame}
           practiceState={practiceState}
           tolerance={settings.tolerance}

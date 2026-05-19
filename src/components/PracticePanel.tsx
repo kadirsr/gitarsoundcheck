@@ -12,6 +12,7 @@ type Props = {
   practiceState: PracticeState;
   pitchFrame: PitchFrame | null;
   audioStatus: string;
+  audioDebugEnabled: boolean;
   tolerance: TolerancePreset;
   onToleranceChange: (tolerance: TolerancePreset) => void;
   bpm: number;
@@ -20,6 +21,7 @@ type Props = {
   onBpmChange: (bpm: number) => void;
   onModeChange: (mode: PracticeMode) => void;
   onMetronomeChange: (enabled: boolean) => void;
+  onAudioDebugChange: (enabled: boolean) => void;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
@@ -30,6 +32,7 @@ export function PracticePanel({
   practiceState,
   pitchFrame,
   audioStatus,
+  audioDebugEnabled,
   tolerance,
   onToleranceChange,
   bpm,
@@ -38,6 +41,7 @@ export function PracticePanel({
   onBpmChange,
   onModeChange,
   onMetronomeChange,
+  onAudioDebugChange,
   onStart,
   onStop,
   onReset
@@ -165,6 +169,14 @@ export function PracticePanel({
           <Metric label="Hz" value={pitchFrame?.frequency ? pitchFrame.frequency.toFixed(1) : "-"} />
           <Metric label="RMS" value={pitchFrame?.rms ? pitchFrame.rms.toFixed(3) : "0.000"} />
         </div>
+        <label className="mt-3 flex items-center justify-between rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
+          Konsol debug
+          <input
+            checked={audioDebugEnabled}
+            type="checkbox"
+            onChange={(event) => onAudioDebugChange(event.target.checked)}
+          />
+        </label>
       </section>
     </aside>
   );
