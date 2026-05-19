@@ -29,6 +29,12 @@ describe("tabGrid", () => {
     expect(grid.stepCount).toBe(8);
   });
 
+  it("supports song-length grids beyond the starter workspace", () => {
+    const grid = createEmptyGrid(600);
+    expect(grid.stepCount).toBe(600);
+    expect(grid.cells.D).toHaveLength(600);
+  });
+
   it("round-trips grid through ASCII", () => {
     let grid = createEmptyGrid(8);
     grid = setGridNote(grid, "D", 0, 0);

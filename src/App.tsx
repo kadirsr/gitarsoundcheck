@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { EXAMPLE_TAB, EXAMPLE_TABS, GUITAR_STRINGS } from "./constants";
+import {
+  AUTO_EXTEND_STEP_COUNT,
+  AUTO_EXTEND_THRESHOLD,
+  EXAMPLE_TAB,
+  EXAMPLE_TABS,
+  GUITAR_STRINGS,
+  MAX_STEP_COUNT
+} from "./constants";
 import { AsciiTabEditor } from "./components/AsciiTabEditor";
 import { Header } from "./components/Header";
 import { InteractiveGrid } from "./components/InteractiveGrid";
@@ -9,7 +16,6 @@ import { ResultsPanel } from "./components/ResultsPanel";
 import { useAudioPitch } from "./hooks/useAudioPitch";
 import { useMetronome } from "./hooks/useMetronome";
 import {
-  addStep,
   clearGrid,
   gridFromAscii,
   removeStep,
@@ -30,7 +36,23 @@ import {
   saveDraft,
   saveSettings
 } from "./lib/storage";
-import type { GuitarString, PracticeMode, TolerancePreset } from "./types";
+import type { GuitarString, PracticeMode, TabGrid, TolerancePreset } from "./types";
+
+function extendGridIfNeeded(grid: TabGrid, stepIndex: number, fret: number | null) {
+  if (fret === null || stepIndex < grid.stepCount - AUTO_EXTEND_THRESHOLD) {
+    return grid;
+  }
+
+  return resizeGrid(grid, Math.min(MAX_STEP_COUNT, grid.stepCount + AUTO_EXTEND_STEP_COUNT));
+}
+
+function extendGridAfterLastStep(grid: TabGrid) {
+  if (grid.stepCount >= MAX_STEP_COUNT) {
+    return grid;
+  }
+
+  return resizeGrid(grid, Math.min(MAX_STEP_COUNT, grid.stepCount + AUTO_EXTEND_STEP_COUNT));
+}
 
 function App() {
   const [mode, setMode] = useState<"ascii" | "grid">("grid");
@@ -56,18 +78,26 @@ function App() {
 
   useMetronome(settings.bpm, metronomeEnabled);
 
+  const commitGrid = useCallback((nextGrid: TabGrid) => {
+    setGrid(nextGrid);
+    setTabText(renderGridToAscii(nextGrid));
+  }, []);
+
   const updateGridNote = useCallback(
     (stringName: GuitarString, stepIndex: number, fret: number | null) => {
       try {
-        const nextGrid = setGridNote(grid, stringName, stepIndex, fret);
-        setGrid(nextGrid);
-        setTabText(renderGridToAscii(nextGrid));
+        const nextGrid = extendGridIfNeeded(
+          setGridNote(grid, stringName, stepIndex, fret),
+          stepIndex,
+          fret
+        );
+        commitGrid(nextGrid);
         setLastError(null);
       } catch (error) {
         setLastError(error instanceof Error ? error.message : "Could not update grid.");
       }
     },
-    [grid]
+    [commitGrid, grid]
   );
 
   useEffect(() => {
@@ -115,7 +145,17 @@ function App() {
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        setSelectedCell({ stringName, stepIndex: Math.min(grid.stepCount - 1, stepIndex + 1) });
+        if (stepIndex >= grid.stepCount - 1) {
+          const nextGrid = extendGridAfterLastStep(grid);
+          commitGrid(nextGrid);
+          setSelectedCell({
+            stringName,
+            stepIndex: Math.min(nextGrid.stepCount - 1, stepIndex + 1)
+          });
+          return;
+        }
+
+        setSelectedCell({ stringName, stepIndex: stepIndex + 1 });
       }
 
       if (event.key === "ArrowLeft") {
@@ -150,7 +190,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [grid, mode, selectedCell, updateGridNote]);
+  }, [commitGrid, grid, mode, selectedCell, updateGridNote]);
 
   const noteStepBySequence = useMemo(() => {
     const map = new Map<number, number>();
@@ -194,8 +234,7 @@ function App() {
 
   function handleResize(stepCount: number) {
     const nextGrid = resizeGrid(grid, stepCount);
-    setGrid(nextGrid);
-    setTabText(renderGridToAscii(nextGrid));
+    commitGrid(nextGrid);
   }
 
   function handleLoadExample(exampleId = selectedExampleId) {
@@ -311,19 +350,16 @@ function App() {
               currentStep={currentStep}
               grid={grid}
               onAddStep={() => {
-                const nextGrid = addStep(grid);
-                setGrid(nextGrid);
-                setTabText(renderGridToAscii(nextGrid));
+                const nextGrid = resizeGrid(grid, grid.stepCount + AUTO_EXTEND_STEP_COUNT);
+                commitGrid(nextGrid);
               }}
               onClear={() => {
                 const nextGrid = clearGrid(grid);
-                setGrid(nextGrid);
-                setTabText(renderGridToAscii(nextGrid));
+                commitGrid(nextGrid);
               }}
               onRemoveStep={() => {
                 const nextGrid = removeStep(grid);
-                setGrid(nextGrid);
-                setTabText(renderGridToAscii(nextGrid));
+                commitGrid(nextGrid);
               }}
               onResize={handleResize}
               onSelectCell={(stringName, stepIndex) => setSelectedCell({ stringName, stepIndex })}

@@ -72,7 +72,7 @@ export function InteractiveGrid({
             </span>
           </div>
           <p className="text-sm text-slate-600">
-            Hücre seç, perdeyi belirle ve her adımda tek nota bırak.
+            Hücre seç, perdeyi belirle; sona yaklaştıkça timeline otomatik uzar.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -87,7 +87,7 @@ export function InteractiveGrid({
               onChange={(event) => onResize(Number(event.target.value))}
             />
           </label>
-          <button className="icon-button" type="button" title="Adım ekle" onClick={onAddStep}>
+          <button className="icon-button" type="button" title="16 adım ekle" onClick={onAddStep}>
             <Plus size={16} aria-hidden="true" />
           </button>
           <button className="icon-button" type="button" title="Adım sil" onClick={onRemoveStep}>

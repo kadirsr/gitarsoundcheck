@@ -79,7 +79,9 @@ E|--------------------------|`
 
 export const DEFAULT_STEP_COUNT = 32;
 export const MIN_STEP_COUNT = 8;
-export const MAX_STEP_COUNT = 256;
+export const MAX_STEP_COUNT = 2048;
+export const AUTO_EXTEND_STEP_COUNT = 16;
+export const AUTO_EXTEND_THRESHOLD = 4;
 export const STEP_WIDTH = 3;
 export const MIN_RMS = 0.01;
 export const STABLE_NOTE_MS = 100;
