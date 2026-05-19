@@ -21,7 +21,6 @@ import { renderGridToAscii } from "./lib/tabRenderer";
 import {
   createPracticeState,
   evaluatePitchFrame,
-  markCurrentCorrect,
   startPractice
 } from "./lib/practiceEngine";
 import {
@@ -342,9 +341,6 @@ function App() {
           mode={settings.practiceMode}
           notes={parseResult.notes}
           onBpmChange={(bpm) => updateSettings({ bpm })}
-          onManualCorrect={() =>
-            setPracticeState((current) => markCurrentCorrect(current, parseResult.notes))
-          }
           onMetronomeChange={setMetronomeEnabled}
           onModeChange={(practiceMode: PracticeMode) => updateSettings({ practiceMode })}
           onReset={() => setPracticeState(createPracticeState(settings.bpm, settings.practiceMode))}

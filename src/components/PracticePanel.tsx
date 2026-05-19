@@ -1,4 +1,4 @@
-﻿import { Check, Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
+import { Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
 import type {
   ParsedNote,
   PitchFrame,
@@ -23,7 +23,6 @@ type Props = {
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
-  onManualCorrect: () => void;
 };
 
 export function PracticePanel({
@@ -41,8 +40,7 @@ export function PracticePanel({
   onMetronomeChange,
   onStart,
   onStop,
-  onReset,
-  onManualCorrect
+  onReset
 }: Props) {
   const currentNote = notes[practiceState.currentIndex] ?? null;
 
@@ -94,15 +92,15 @@ export function PracticePanel({
             <Square size={16} aria-hidden="true" />
             Dur
           </button>
-          <button className="secondary-button" type="button" onClick={onManualCorrect}>
-            <Check size={16} aria-hidden="true" />
-            Doğru işaretle
-          </button>
-          <button className="secondary-button" type="button" onClick={onReset}>
+          <button className="secondary-button col-span-2" type="button" onClick={onReset}>
             <RotateCcw size={16} aria-hidden="true" />
             Sıfırla
           </button>
         </div>
+
+        <p className="mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-slate-600">
+          Mikrofon dinlerken doğru nota kısa süre sabit duyulursa otomatik işaretlenir.
+        </p>
       </section>
 
       <section className="workspace-card p-4">
