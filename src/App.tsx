@@ -108,9 +108,18 @@ function App() {
     () => getExpectedAudioTarget(parseResult.notes, practiceState),
     [parseResult.notes, practiceState]
   );
-  const { frame, status: audioStatus, start: startAudio, stop: stopAudio } = useAudioPitch(
+  const {
+    diagnostics: audioDiagnostics,
+    frame,
+    inputDevices: audioInputDevices,
+    refreshInputDevices,
+    status: audioStatus,
+    start: startAudio,
+    stop: stopAudio
+  } = useAudioPitch(
     settings.microphoneSensitivity,
-    audioTarget
+    audioTarget,
+    settings.audioInputDeviceId
   );
 
   useMetronome(settings.bpm, metronomeEnabled);
@@ -345,8 +354,15 @@ function App() {
       return;
     }
 
+    const started = await startAudio();
+    if (!started) {
+      setPracticeState((current) => ({ ...current, status: "idle", stableSince: null }));
+      setLastError("Mikrofon baslatilamadi. Ses panelinden giris cihazini degistirip tekrar dene.");
+      return;
+    }
+
+    setLastError(null);
     setPracticeState((current) => startPractice(current));
-    await startAudio();
     window.scrollTo({ left: 0, top: window.scrollY });
   }
 
@@ -466,6 +482,8 @@ function App() {
         </div>
         <PracticePanel
           bpm={settings.bpm}
+          audioDiagnostics={audioDiagnostics}
+          audioInputDevices={audioInputDevices}
           audioStatus={audioStatus}
           metronomeEnabled={metronomeEnabled}
           mode={settings.practiceMode}
@@ -476,9 +494,12 @@ function App() {
           onReset={() => setPracticeState(createPracticeState(settings.bpm, settings.practiceMode))}
           onStart={handleStart}
           onStop={handleStop}
+          onAudioInputChange={(audioInputDeviceId) => updateSettings({ audioInputDeviceId })}
           onAudioDebugChange={updateAudioDebug}
+          onRefreshAudioInputs={refreshInputDevices}
           onToleranceChange={(tolerance: TolerancePreset) => updateSettings({ tolerance })}
           audioDebugEnabled={audioDebugEnabled}
+          selectedAudioInputId={settings.audioInputDeviceId}
           microphoneSensitivity={settings.microphoneSensitivity}
           onMicrophoneSensitivityChange={(microphoneSensitivity) =>
             updateSettings({ microphoneSensitivity })

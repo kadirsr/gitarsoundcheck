@@ -1,9 +1,11 @@
-import { Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
+import { Mic, MicOff, Play, RefreshCw, RotateCcw, Square } from "lucide-react";
 import {
   MAX_MICROPHONE_SENSITIVITY,
   MIN_MICROPHONE_SENSITIVITY
 } from "../constants";
 import type {
+  AudioDiagnostics,
+  AudioInputDevice,
   ParsedNote,
   PitchFrame,
   PracticeMode,
@@ -15,11 +17,16 @@ type Props = {
   notes: ParsedNote[];
   practiceState: PracticeState;
   pitchFrame: PitchFrame | null;
+  audioDiagnostics: AudioDiagnostics;
+  audioInputDevices: AudioInputDevice[];
   audioStatus: string;
   audioDebugEnabled: boolean;
   microphoneSensitivity: number;
+  selectedAudioInputId: string;
+  onAudioInputChange: (deviceId: string) => void;
   tolerance: TolerancePreset;
   onMicrophoneSensitivityChange: (value: number) => void;
+  onRefreshAudioInputs: () => void | Promise<unknown>;
   onToleranceChange: (tolerance: TolerancePreset) => void;
   bpm: number;
   mode: PracticeMode;
@@ -37,11 +44,16 @@ export function PracticePanel({
   notes,
   practiceState,
   pitchFrame,
+  audioDiagnostics,
+  audioInputDevices,
   audioStatus,
   audioDebugEnabled,
   microphoneSensitivity,
+  selectedAudioInputId,
+  onAudioInputChange,
   tolerance,
   onMicrophoneSensitivityChange,
+  onRefreshAudioInputs,
   onToleranceChange,
   bpm,
   mode,
@@ -170,13 +182,41 @@ export function PracticePanel({
 
       <section className="workspace-card p-4">
         <h2 className="mb-3 text-lg font-semibold text-slate-950">Ses</h2>
-        <AudioStatusMessage status={audioStatus} />
+        <AudioStatusMessage diagnostics={audioDiagnostics} status={audioStatus} />
+        <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+          <label className="block min-w-0 text-sm text-slate-700">
+            Giris cihazi
+            <select
+              className="control-input mt-1 w-full"
+              value={selectedAudioInputId}
+              onChange={(event) => onAudioInputChange(event.target.value)}
+            >
+              <option value="">Varsayilan mikrofon</option>
+              {audioInputDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            aria-label="Mikrofon listesini yenile"
+            className="icon-button"
+            type="button"
+            onClick={() => void onRefreshAudioInputs()}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <Metric label="Tespit" value={pitchFrame?.noteName ?? "-"} />
           <Metric label="Sent" value={pitchFrame?.centsOff ?? "-"} />
           <Metric label="Hz" value={pitchFrame?.frequency ? pitchFrame.frequency.toFixed(1) : "-"} />
-          <Metric label="RMS" value={pitchFrame?.rms ? pitchFrame.rms.toFixed(4) : "0.0000"} />
+          <Metric label="RMS" value={formatSignal(pitchFrame?.rms)} />
+          <Metric label="Peak" value={formatSignal(pitchFrame?.peak)} />
+          <Metric label="Sinyal" value={getSignalLabel(audioDiagnostics)} />
         </div>
+        <AudioDiagnosticsPanel diagnostics={audioDiagnostics} />
         <label className="mt-3 block rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
           <span className="flex items-center justify-between gap-3">
             <span>Mikrofon esigi</span>
@@ -253,8 +293,23 @@ function ProgressRail({
   );
 }
 
-function AudioStatusMessage({ status }: { status: string }) {
+function AudioStatusMessage({
+  diagnostics,
+  status
+}: {
+  diagnostics: AudioDiagnostics;
+  status: string;
+}) {
   if (status === "listening") {
+    if (diagnostics.signalState === "silent") {
+      return (
+        <p className="mb-3 flex items-start gap-2 rounded-md border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-900">
+          <MicOff className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+          Mikrofon acik ama sinyal gelmiyor. Giris cihazini degistir, Windows ses ayarinda mikrofonun hareket ettigini kontrol et.
+        </p>
+      );
+    }
+
     return (
       <p className="mb-3 flex items-center gap-2 rounded-md border border-action/40 bg-action/15 px-3 py-2 text-sm text-emerald-50">
         <Mic size={16} aria-hidden="true" />
@@ -296,6 +351,44 @@ function AudioStatusMessage({ status }: { status: string }) {
       Mikrofon erişimini istemek için Başlat'a bas.
     </p>
   );
+}
+
+function AudioDiagnosticsPanel({ diagnostics }: { diagnostics: AudioDiagnostics }) {
+  return (
+    <div className="mt-3 rounded-md border border-line bg-white/90 px-3 py-2 text-xs text-slate-600">
+      <p className="font-medium text-slate-800">
+        {diagnostics.deviceLabel || "Varsayilan mikrofon"}
+      </p>
+      <p>
+        Motor {diagnostics.contextState} / Kanal {diagnostics.trackReadyState}
+        {diagnostics.trackMuted ? " / mute" : ""}
+      </p>
+      <p>{diagnostics.inputDeviceCount} giris cihazi bulundu.</p>
+      {diagnostics.lastError ? (
+        <p className="mt-1 text-amber-700">{diagnostics.lastError}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function formatSignal(value: number | undefined): string {
+  return value === undefined ? "0.000000" : value.toFixed(6);
+}
+
+function getSignalLabel(diagnostics: AudioDiagnostics): string {
+  if (diagnostics.signalState === "receiving") {
+    return "var";
+  }
+
+  if (diagnostics.signalState === "silent") {
+    return "yok";
+  }
+
+  if (diagnostics.signalState === "starting") {
+    return "bakiliyor";
+  }
+
+  return "-";
 }
 
 function Metric({

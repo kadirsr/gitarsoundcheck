@@ -43,6 +43,7 @@ export type PitchFrame = {
   noteName: string | null;
   centsOff: number | null;
   rms: number;
+  peak?: number;
   confidence: number;
   timestamp: number;
   detectionMethod?: "none" | "yin" | "mpm" | "target";
@@ -55,6 +56,22 @@ export type PitchFrame = {
 export type PitchTarget = {
   frequency: number;
   midi: number;
+};
+
+export type AudioInputDevice = {
+  deviceId: string;
+  label: string;
+};
+
+export type AudioDiagnostics = {
+  contextState: "closed" | "none" | "running" | "suspended";
+  deviceLabel: string;
+  inputDeviceCount: number;
+  lastError: string | null;
+  signalState: "idle" | "receiving" | "silent" | "starting";
+  silentFrameCount: number;
+  trackMuted: boolean;
+  trackReadyState: "ended" | "live" | "none";
 };
 
 export type PracticeMode = "WAIT" | "FLOW";

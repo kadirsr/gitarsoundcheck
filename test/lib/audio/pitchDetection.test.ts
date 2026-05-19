@@ -9,6 +9,7 @@ describe("pitchDetection", () => {
 
     expect(frame.noteName).toBe("G3");
     expect(frame.midi).toBe(55);
+    expect(frame.peak).toBeGreaterThan(0.3);
     expect(Math.abs(frame.centsOff ?? 999)).toBeLessThan(20);
   });
 
@@ -56,6 +57,7 @@ describe("pitchDetection", () => {
     expect(frame.frequency).toBeNull();
     expect(frame.rejectionReason).toBe("rms-low");
     expect(frame.inputThreshold).toBe(0.0005);
+    expect(frame.peak).toBeGreaterThan(0);
   });
 
   it("ignores sub-guitar frequencies that caused false low-note locks", () => {

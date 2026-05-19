@@ -22,6 +22,7 @@ type AudioDebugEntry = {
   centsOff: number | null;
   midiDelta: number | null;
   rms: number;
+  peak: number | null;
   confidence: number;
   detectionMethod: string;
   inputThreshold: number | null;
@@ -127,7 +128,8 @@ function createDebugEntry(
     detectedFrequency: frame.frequency,
     centsOff: frame.centsOff,
     midiDelta,
-    rms: Number(frame.rms.toFixed(4)),
+    rms: Number(frame.rms.toFixed(6)),
+    peak: frame.peak === undefined ? null : Number(frame.peak.toFixed(6)),
     confidence: Number(frame.confidence.toFixed(3)),
     detectionMethod: frame.detectionMethod ?? "none",
     inputThreshold:
@@ -162,8 +164,12 @@ function getReason({
   }
 
   if (frame.frequency === null || frame.midi === null || frame.centsOff === null) {
+    if ((frame.peak ?? 0) === 0) {
+      return "input stream is silent or disconnected";
+    }
+
     if (frame.rejectionReason === "rms-low") {
-      return `RMS ${frame.rms.toFixed(4)} below input threshold ${(frame.inputThreshold ?? 0).toFixed(4)}`;
+      return `RMS ${frame.rms.toFixed(6)} below input threshold ${(frame.inputThreshold ?? 0).toFixed(4)}`;
     }
 
     if (frame.targetScore !== undefined) {

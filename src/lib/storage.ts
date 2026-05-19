@@ -10,6 +10,7 @@ const DRAFT_KEY = "tabflow:draft";
 const SETTINGS_KEY = "tabflow:settings";
 
 export type StoredSettings = {
+  audioInputDeviceId: string;
   bpm: number;
   practiceMode: PracticeMode;
   tolerance: TolerancePreset;
@@ -17,6 +18,7 @@ export type StoredSettings = {
 };
 
 export const DEFAULT_SETTINGS: StoredSettings = {
+  audioInputDeviceId: "",
   bpm: 60,
   practiceMode: "WAIT",
   tolerance: "NORMAL",
@@ -61,6 +63,8 @@ export function loadSettings(): StoredSettings {
     const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(rawValue) };
     return {
       ...parsed,
+      audioInputDeviceId:
+        typeof parsed.audioInputDeviceId === "string" ? parsed.audioInputDeviceId : "",
       practiceMode: parsed.practiceMode === "BPM_STRICT" ? "FLOW" : parsed.practiceMode,
       microphoneSensitivity: normalizeMicrophoneSensitivity(parsed.microphoneSensitivity)
     };

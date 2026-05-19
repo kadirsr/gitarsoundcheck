@@ -25,8 +25,9 @@ export function createPitchFrame(
   } = {}
 ): PitchFrame {
   const rms = calculateRms(buffer);
+  const peak = calculatePeak(buffer);
   if (rms < minRms) {
-    return emptyPitchFrame(rms, timestamp, {
+    return emptyPitchFrame(rms, peak, timestamp, {
       inputThreshold: minRms,
       rejectionReason: "rms-low"
     });
@@ -49,6 +50,7 @@ export function createPitchFrame(
       noteName: midiToNoteName(options.target.midi),
       centsOff: 0,
       rms,
+      peak,
       confidence: Math.max(0, Math.min(1, targetResult.score / 8)),
       timestamp,
       detectionMethod: "target",
@@ -61,7 +63,7 @@ export function createPitchFrame(
   const pitchResult = detectPitch(buffer, sampleRate);
   const frequency = pitchResult?.frequency ?? null;
   if (frequency === null) {
-    return emptyPitchFrame(rms, timestamp, {
+    return emptyPitchFrame(rms, peak, timestamp, {
       inputThreshold: minRms,
       rejectionReason: "no-lock",
       targetScore: targetResult?.score,
@@ -78,6 +80,7 @@ export function createPitchFrame(
     noteName: midiToNoteName(midi),
     centsOff,
     rms,
+    peak,
     confidence: Math.max(0, Math.min(1, rms * 20)),
     timestamp,
     detectionMethod: pitchResult?.method ?? "none",
@@ -93,6 +96,14 @@ export function calculateRms(buffer: Float32Array): number {
     sum += sample * sample;
   }
   return Math.sqrt(sum / buffer.length);
+}
+
+function calculatePeak(buffer: Float32Array): number {
+  let peak = 0;
+  for (const sample of buffer) {
+    peak = Math.max(peak, Math.abs(sample));
+  }
+  return peak;
 }
 
 function detectPitch(
@@ -394,6 +405,7 @@ function dbToLinearEnergy(value: number): number {
 
 function emptyPitchFrame(
   rms: number,
+  peak: number,
   timestamp: number,
   diagnostics: Pick<
     PitchFrame,
@@ -406,6 +418,7 @@ function emptyPitchFrame(
     noteName: null,
     centsOff: null,
     rms,
+    peak,
     confidence: 0,
     timestamp,
     detectionMethod: "none",
