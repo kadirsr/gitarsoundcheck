@@ -5,10 +5,10 @@ export default {
     extend: {
       colors: {
         ink: "#121a24",
-        panel: "#1b2633",
-        line: "#3b4b5d",
-        action: "#35e39b",
-        warn: "#f5b84b",
+        panel: "#ffffff",
+        line: "#e8bed2",
+        action: "#ff4f96",
+        warn: "#ffcc5c",
         danger: "#ef4444"
       }
     }

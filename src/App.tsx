@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { EXAMPLE_TAB, GUITAR_STRINGS } from "./constants";
+import { EXAMPLE_TAB, EXAMPLE_TABS, GUITAR_STRINGS } from "./constants";
 import { AsciiTabEditor } from "./components/AsciiTabEditor";
 import { Header } from "./components/Header";
 import { InteractiveGrid } from "./components/InteractiveGrid";
@@ -38,6 +38,7 @@ function App() {
   const [draftTitle, setDraftTitle] = useState("Starter riff");
   const [tabText, setTabText] = useState(EXAMPLE_TAB);
   const [grid, setGrid] = useState(() => gridFromAscii(EXAMPLE_TAB));
+  const [selectedExampleId, setSelectedExampleId] = useState(EXAMPLE_TABS[0].id);
   const [selectedCell, setSelectedCell] = useState<{
     stringName: GuitarString;
     stepIndex: number;
@@ -198,9 +199,12 @@ function App() {
     setTabText(renderGridToAscii(nextGrid));
   }
 
-  function handleLoadExample() {
-    const nextGrid = gridFromAscii(EXAMPLE_TAB);
-    setTabText(EXAMPLE_TAB);
+  function handleLoadExample(exampleId = selectedExampleId) {
+    const example = EXAMPLE_TABS.find((item) => item.id === exampleId) ?? EXAMPLE_TABS[0];
+    const nextGrid = gridFromAscii(example.tabText);
+    setDraftTitle(example.title);
+    setSelectedExampleId(example.id);
+    setTabText(example.tabText);
     setGrid(nextGrid);
     setPracticeState(createPracticeState(settings.bpm, settings.practiceMode));
   }
@@ -240,14 +244,14 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden text-slate-100">
+    <div className="min-h-screen overflow-x-hidden text-slate-900">
       <Header />
       <main className="mx-auto grid max-w-7xl gap-5 overflow-x-hidden px-4 py-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
           <section className="workspace-card p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-64 flex-1">
-                <label className="text-sm font-medium text-slate-300" htmlFor="tab-title">
+                <label className="text-sm font-medium text-slate-700" htmlFor="tab-title">
                   Sekme başlığı
                 </label>
                 <input
@@ -258,7 +262,21 @@ function App() {
                 />
               </div>
               <ModeSwitcher mode={mode} onChange={setMode} />
-              <button className="secondary-button" type="button" onClick={handleLoadExample}>
+              <label className="min-w-48 text-sm font-medium text-slate-700">
+                Örnekler
+                <select
+                  className="control-input mt-1 w-full"
+                  value={selectedExampleId}
+                  onChange={(event) => handleLoadExample(event.target.value)}
+                >
+                  {EXAMPLE_TABS.map((example) => (
+                    <option key={example.id} value={example.id}>
+                      {example.title} · {example.mood}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="secondary-button" type="button" onClick={() => handleLoadExample()}>
                 Örnek yükle
               </button>
             </div>
@@ -277,8 +295,8 @@ function App() {
           ) : null}
 
           {audioStatus === "insecure" ? (
-            <p className="rounded-md border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-50">
-              Bu adres HTTP. Tarayıcılar mikrofon iznini localhost veya HTTPS üzerinde ister; sunucu önizlemesinde otomatik dinleme için HTTPS gerekir.
+            <p className="rounded-md border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-900">
+              Bu adres HTTP. Mikrofon testi için aynı uygulamayı tünel üzerinden <strong>http://localhost:8093</strong> adresinde aç.
             </p>
           ) : null}
 

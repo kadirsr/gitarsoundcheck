@@ -66,20 +66,20 @@ export function InteractiveGrid({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">Etkileşimli ızgara</h2>
-            <span className="rounded-full border border-sky-300/30 bg-sky-300/10 px-2 py-0.5 text-xs text-sky-100">
+            <h2 className="text-lg font-semibold text-slate-950">Etkileşimli ızgara</h2>
+            <span className="rounded-full border border-action/25 bg-action/10 px-2 py-0.5 text-xs font-medium text-action">
               Tek nota modu
             </span>
           </div>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-600">
             Hücre seç, perdeyi belirle ve her adımda tek nota bırak.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             Adımlar
             <input
-              className="w-20 rounded border border-line bg-ink px-2 py-2 text-slate-50 outline-none focus:ring-2 focus:ring-action/50"
+              className="control-input w-20"
               min={MIN_STEP_COUNT}
               max={MAX_STEP_COUNT}
               type="number"
@@ -100,7 +100,7 @@ export function InteractiveGrid({
       </div>
       <div className="flex items-center justify-between rounded-t-md border border-b-0 border-line bg-ink/95 px-3 py-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Sekme oynatıcı</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">Sekme oynatıcı</p>
           <p className="text-sm text-slate-300">
             Adım {currentStep === null ? "01" : String(currentStep + 1).padStart(2, "0")}
           </p>
@@ -161,14 +161,13 @@ export function InteractiveGrid({
           ))}
         </div>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-300">
+      <div className="flex items-center gap-2 text-xs text-slate-600">
         <Eraser size={14} aria-hidden="true" />
         Backspace/Delete seçili notayı temizler. Ok tuşları seçimi taşır.
       </div>
     </section>
   );
 }
-
 type RowProps = {
   grid: TabGrid;
   stringName: GuitarString;
@@ -202,7 +201,7 @@ function Row({
 }: RowProps) {
   return (
     <>
-      <div className="sticky left-0 z-20 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-slate-200">
+      <div className="sticky left-0 z-20 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-white">
         {stringLabel}
       </div>
       {grid.cells[stringName].map((fret, stepIndex) => {
@@ -243,7 +242,6 @@ function Row({
     </>
   );
 }
-
 function FretPicker({
   draftFret,
   onChange,
@@ -263,7 +261,7 @@ function FretPicker({
 
   return (
     <div className="absolute left-1/2 top-full z-30 mt-2 w-44 -translate-x-1/2 rounded border border-line bg-panel p-2 shadow-2xl shadow-black/30">
-      <label className="mb-1 block text-xs font-medium text-slate-200" htmlFor="fret-picker">
+      <label className="mb-1 block text-xs font-medium text-slate-700" htmlFor="fret-picker">
         Perde
       </label>
       <select
@@ -327,7 +325,7 @@ function getCellStatusClass({
     return "bg-sky-300 text-ink ring-2 ring-sky-100";
   }
   if (selected) {
-    return "bg-panel text-white ring-2 ring-action";
+    return "bg-action/20 text-white ring-2 ring-action";
   }
   if (hasNote) {
     return "bg-slate-600 text-white hover:bg-slate-500";
@@ -335,5 +333,5 @@ function getCellStatusClass({
   if (playhead) {
     return "bg-sky-300/20 text-slate-200";
   }
-  return "text-slate-400 hover:bg-panel";
+  return "text-slate-400 hover:bg-white/5";
 }

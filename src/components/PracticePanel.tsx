@@ -1,4 +1,4 @@
-import { Check, Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
+﻿import { Check, Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
 import type {
   ParsedNote,
   PitchFrame,
@@ -51,10 +51,10 @@ export function PracticePanel({
       <section className="workspace-card overflow-hidden p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Pratik</h2>
-            <p className="text-xs text-slate-400">Sıradaki hedef ve performans</p>
+            <h2 className="text-lg font-semibold text-slate-950">Pratik</h2>
+            <p className="text-xs text-slate-500">Sıradaki hedef ve performans</p>
           </div>
-          <span className="rounded-md border border-line bg-ink/80 px-2 py-1 text-xs uppercase tracking-wide text-slate-300">
+          <span className="rounded-md border border-line bg-pink-50 px-2 py-1 text-xs uppercase tracking-wide text-pink-700">
             {practiceState.status}
           </span>
         </div>
@@ -106,9 +106,9 @@ export function PracticePanel({
       </section>
 
       <section className="workspace-card p-4">
-        <h2 className="mb-3 text-lg font-semibold text-white">Kontroller</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-950">Kontroller</h2>
         <div className="space-y-3">
-          <label className="block text-sm text-slate-300">
+          <label className="block text-sm text-slate-700">
             BPM
             <input
               className="control-input mt-1 w-full"
@@ -120,7 +120,7 @@ export function PracticePanel({
             />
           </label>
 
-          <label className="block text-sm text-slate-300">
+          <label className="block text-sm text-slate-700">
             Mod
             <select
               className="control-input mt-1 w-full"
@@ -132,7 +132,7 @@ export function PracticePanel({
             </select>
           </label>
 
-          <label className="block text-sm text-slate-300">
+          <label className="block text-sm text-slate-700">
             Hoşgörü
             <select
               className="control-input mt-1 w-full"
@@ -145,7 +145,7 @@ export function PracticePanel({
             </select>
           </label>
 
-          <label className="flex items-center justify-between rounded-md border border-line bg-ink/80 px-3 py-2 text-sm text-slate-300">
+          <label className="flex items-center justify-between rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
             Metronom
             <input
               checked={metronomeEnabled}
@@ -157,7 +157,7 @@ export function PracticePanel({
       </section>
 
       <section className="workspace-card p-4">
-        <h2 className="mb-3 text-lg font-semibold text-white">Ses</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-950">Ses</h2>
         <AudioStatusMessage status={audioStatus} />
         <div className="grid grid-cols-2 gap-2 text-sm">
           <Metric label="Tespit" value={pitchFrame?.noteName ?? "-"} />
@@ -169,7 +169,6 @@ export function PracticePanel({
     </aside>
   );
 }
-
 function ProgressRail({
   notes,
   currentIndex
@@ -246,7 +245,7 @@ function AudioStatusMessage({ status }: { status: string }) {
   }
 
   return (
-    <p className="mb-3 flex items-center gap-2 rounded-md border border-line bg-ink/80 px-3 py-2 text-sm text-slate-300">
+    <p className="mb-3 flex items-center gap-2 rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
       <Mic size={16} aria-hidden="true" />
       Mikrofon erişimini istemek için Başlat'a bas.
     </p>
@@ -263,16 +262,16 @@ function Metric({
   tone?: "neutral" | "good" | "bad" | "sky";
 }) {
   const toneClass = {
-    neutral: "border-line bg-ink/80",
-    good: "border-emerald-300/30 bg-emerald-300/10",
-    bad: "border-red-300/30 bg-red-300/10",
-    sky: "border-sky-300/30 bg-sky-300/10"
+    neutral: "border-line bg-white/90",
+    good: "border-emerald-300/40 bg-emerald-50",
+    bad: "border-red-300/40 bg-red-50",
+    sky: "border-sky-300/40 bg-sky-50"
   }[tone];
 
   return (
     <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className="font-semibold text-slate-100">{value}</p>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="font-semibold text-slate-950">{value}</p>
     </div>
   );
 }
