@@ -38,6 +38,26 @@ describe("pitchDetection", () => {
     expect(frame.midi).toBe(55);
   });
 
+  it("keeps analysing quiet guitar input when it is above the lowered threshold", () => {
+    const frame = createPitchFrame(createNoise(8192, 0.0008), SAMPLE_RATE, 0, 0.0005, {
+      fftSize: 8192,
+      frequencyData: createTargetSpectrum(146.83, 8192),
+      target: { frequency: 146.83, midi: 50 }
+    });
+
+    expect(frame.detectionMethod).toBe("target");
+    expect(frame.noteName).toBe("D3");
+    expect(frame.inputThreshold).toBe(0.0005);
+  });
+
+  it("reports when audio is below the microphone input threshold", () => {
+    const frame = createPitchFrame(createNoise(4096, 0.0001), SAMPLE_RATE, 0, 0.0005);
+
+    expect(frame.frequency).toBeNull();
+    expect(frame.rejectionReason).toBe("rms-low");
+    expect(frame.inputThreshold).toBe(0.0005);
+  });
+
   it("ignores sub-guitar frequencies that caused false low-note locks", () => {
     const frame = createPitchFrame(createSineWave(46.25, 4096), SAMPLE_RATE, 0, 0.001);
 
@@ -65,9 +85,9 @@ function createGuitarLikeWave(frequency: number, length: number): Float32Array {
   });
 }
 
-function createNoise(length: number): Float32Array {
+function createNoise(length: number, amplitude = 0.02): Float32Array {
   return Float32Array.from({ length }, (_, index) =>
-    Math.sin(index * 1.37) * 0.02
+    Math.sin(index * 1.37) * amplitude
   );
 }
 

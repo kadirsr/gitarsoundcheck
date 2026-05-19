@@ -46,6 +46,8 @@ export type PitchFrame = {
   confidence: number;
   timestamp: number;
   detectionMethod?: "none" | "yin" | "mpm" | "target";
+  inputThreshold?: number;
+  rejectionReason?: "rms-low" | "no-lock";
   targetScore?: number;
   targetRatio?: number;
 };

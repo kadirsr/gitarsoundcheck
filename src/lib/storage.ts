@@ -1,4 +1,9 @@
-import { EXAMPLE_TAB } from "../constants";
+import {
+  EXAMPLE_TAB,
+  MAX_MICROPHONE_SENSITIVITY,
+  MIN_MICROPHONE_SENSITIVITY,
+  MIN_RMS
+} from "../constants";
 import type { PracticeMode, SavedTab, TabGrid, TolerancePreset } from "../types";
 
 const DRAFT_KEY = "tabflow:draft";
@@ -15,7 +20,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   bpm: 60,
   practiceMode: "WAIT",
   tolerance: "NORMAL",
-  microphoneSensitivity: 0.01
+  microphoneSensitivity: MIN_RMS
 };
 
 export function loadDraft(): SavedTab {
@@ -56,7 +61,8 @@ export function loadSettings(): StoredSettings {
     const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(rawValue) };
     return {
       ...parsed,
-      practiceMode: parsed.practiceMode === "BPM_STRICT" ? "FLOW" : parsed.practiceMode
+      practiceMode: parsed.practiceMode === "BPM_STRICT" ? "FLOW" : parsed.practiceMode,
+      microphoneSensitivity: normalizeMicrophoneSensitivity(parsed.microphoneSensitivity)
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -65,6 +71,21 @@ export function loadSettings(): StoredSettings {
 
 export function saveSettings(settings: StoredSettings): void {
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function normalizeMicrophoneSensitivity(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_SETTINGS.microphoneSensitivity;
+  }
+
+  if (Math.abs(value - 0.01) < Number.EPSILON) {
+    return DEFAULT_SETTINGS.microphoneSensitivity;
+  }
+
+  return Math.min(
+    MAX_MICROPHONE_SENSITIVITY,
+    Math.max(MIN_MICROPHONE_SENSITIVITY, value)
+  );
 }
 
 function createInitialDraft(): SavedTab {

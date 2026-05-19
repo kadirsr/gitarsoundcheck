@@ -24,6 +24,8 @@ type AudioDebugEntry = {
   rms: number;
   confidence: number;
   detectionMethod: string;
+  inputThreshold: number | null;
+  rejectionReason: string | null;
   targetScore: number | null;
   targetHarmonicHits: number | null;
   tolerance: number;
@@ -128,6 +130,9 @@ function createDebugEntry(
     rms: Number(frame.rms.toFixed(4)),
     confidence: Number(frame.confidence.toFixed(3)),
     detectionMethod: frame.detectionMethod ?? "none",
+    inputThreshold:
+      frame.inputThreshold === undefined ? null : Number(frame.inputThreshold.toFixed(4)),
+    rejectionReason: frame.rejectionReason ?? null,
     targetScore:
       frame.targetScore === undefined ? null : Number(frame.targetScore.toFixed(3)),
     targetHarmonicHits: frame.targetRatio ?? null,
@@ -157,6 +162,10 @@ function getReason({
   }
 
   if (frame.frequency === null || frame.midi === null || frame.centsOff === null) {
+    if (frame.rejectionReason === "rms-low") {
+      return `RMS ${frame.rms.toFixed(4)} below input threshold ${(frame.inputThreshold ?? 0).toFixed(4)}`;
+    }
+
     if (frame.targetScore !== undefined) {
       return `target harmonic score ${frame.targetScore.toFixed(2)} below threshold`;
     }

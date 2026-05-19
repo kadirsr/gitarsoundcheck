@@ -1,4 +1,8 @@
 import { Mic, MicOff, Play, RotateCcw, Square } from "lucide-react";
+import {
+  MAX_MICROPHONE_SENSITIVITY,
+  MIN_MICROPHONE_SENSITIVITY
+} from "../constants";
 import type {
   ParsedNote,
   PitchFrame,
@@ -13,7 +17,9 @@ type Props = {
   pitchFrame: PitchFrame | null;
   audioStatus: string;
   audioDebugEnabled: boolean;
+  microphoneSensitivity: number;
   tolerance: TolerancePreset;
+  onMicrophoneSensitivityChange: (value: number) => void;
   onToleranceChange: (tolerance: TolerancePreset) => void;
   bpm: number;
   mode: PracticeMode;
@@ -33,7 +39,9 @@ export function PracticePanel({
   pitchFrame,
   audioStatus,
   audioDebugEnabled,
+  microphoneSensitivity,
   tolerance,
+  onMicrophoneSensitivityChange,
   onToleranceChange,
   bpm,
   mode,
@@ -167,8 +175,34 @@ export function PracticePanel({
           <Metric label="Tespit" value={pitchFrame?.noteName ?? "-"} />
           <Metric label="Sent" value={pitchFrame?.centsOff ?? "-"} />
           <Metric label="Hz" value={pitchFrame?.frequency ? pitchFrame.frequency.toFixed(1) : "-"} />
-          <Metric label="RMS" value={pitchFrame?.rms ? pitchFrame.rms.toFixed(3) : "0.000"} />
+          <Metric label="RMS" value={pitchFrame?.rms ? pitchFrame.rms.toFixed(4) : "0.0000"} />
         </div>
+        <label className="mt-3 block rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
+          <span className="flex items-center justify-between gap-3">
+            <span>Mikrofon esigi</span>
+            <span className="font-mono text-xs text-slate-500">
+              {microphoneSensitivity.toFixed(4)}
+            </span>
+          </span>
+          <input
+            className="mt-2 w-full accent-pink-500"
+            max={MAX_MICROPHONE_SENSITIVITY}
+            min={MIN_MICROPHONE_SENSITIVITY}
+            step={MIN_MICROPHONE_SENSITIVITY}
+            type="range"
+            value={microphoneSensitivity}
+            onChange={(event) => onMicrophoneSensitivityChange(Number(event.target.value))}
+          />
+          {pitchFrame && pitchFrame.rms < microphoneSensitivity ? (
+            <span className="mt-1 block text-xs text-amber-700">
+              RMS esigin altinda; sola cekersen daha hassas dinler.
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs text-slate-500">
+              Dusuk sinyalde sola, ortam gurultusunda saga al.
+            </span>
+          )}
+        </label>
         <label className="mt-3 flex items-center justify-between rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">
           Konsol debug
           <input

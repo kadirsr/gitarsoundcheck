@@ -26,7 +26,10 @@ export function createPitchFrame(
 ): PitchFrame {
   const rms = calculateRms(buffer);
   if (rms < minRms) {
-    return emptyPitchFrame(rms, timestamp);
+    return emptyPitchFrame(rms, timestamp, {
+      inputThreshold: minRms,
+      rejectionReason: "rms-low"
+    });
   }
 
   const targetResult =
@@ -49,6 +52,7 @@ export function createPitchFrame(
       confidence: Math.max(0, Math.min(1, targetResult.score / 8)),
       timestamp,
       detectionMethod: "target",
+      inputThreshold: minRms,
       targetScore: targetResult.score,
       targetRatio: targetResult.harmonicHits
     };
@@ -58,6 +62,8 @@ export function createPitchFrame(
   const frequency = pitchResult?.frequency ?? null;
   if (frequency === null) {
     return emptyPitchFrame(rms, timestamp, {
+      inputThreshold: minRms,
+      rejectionReason: "no-lock",
       targetScore: targetResult?.score,
       targetRatio: targetResult?.harmonicHits
     });
@@ -75,6 +81,7 @@ export function createPitchFrame(
     confidence: Math.max(0, Math.min(1, rms * 20)),
     timestamp,
     detectionMethod: pitchResult?.method ?? "none",
+    inputThreshold: minRms,
     targetScore: targetResult?.score,
     targetRatio: targetResult?.harmonicHits
   };
@@ -388,7 +395,10 @@ function dbToLinearEnergy(value: number): number {
 function emptyPitchFrame(
   rms: number,
   timestamp: number,
-  diagnostics: Pick<PitchFrame, "targetRatio" | "targetScore"> = {}
+  diagnostics: Pick<
+    PitchFrame,
+    "inputThreshold" | "rejectionReason" | "targetRatio" | "targetScore"
+  > = {}
 ): PitchFrame {
   return {
     frequency: null,

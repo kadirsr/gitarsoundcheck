@@ -83,7 +83,9 @@ export const MAX_STEP_COUNT = 2048;
 export const AUTO_EXTEND_STEP_COUNT = 16;
 export const AUTO_EXTEND_THRESHOLD = 4;
 export const STEP_WIDTH = 3;
-export const MIN_RMS = 0.01;
+export const MIN_MICROPHONE_SENSITIVITY = 0.0001;
+export const MAX_MICROPHONE_SENSITIVITY = 0.02;
+export const MIN_RMS = 0.0005;
 export const STABLE_NOTE_MS = 100;
 
 export const TOLERANCE_CENTS: Record<TolerancePreset, number> = {

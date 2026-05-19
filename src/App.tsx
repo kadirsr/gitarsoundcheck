@@ -479,6 +479,10 @@ function App() {
           onAudioDebugChange={updateAudioDebug}
           onToleranceChange={(tolerance: TolerancePreset) => updateSettings({ tolerance })}
           audioDebugEnabled={audioDebugEnabled}
+          microphoneSensitivity={settings.microphoneSensitivity}
+          onMicrophoneSensitivityChange={(microphoneSensitivity) =>
+            updateSettings({ microphoneSensitivity })
+          }
           pitchFrame={frame}
           practiceState={practiceState}
           tolerance={settings.tolerance}

@@ -18,7 +18,12 @@ export function useAudioPitch(minRms: number, target: PitchTarget | null = null)
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+  const minRmsRef = useRef(minRms);
   const targetRef = useRef<PitchTarget | null>(target);
+
+  useEffect(() => {
+    minRmsRef.current = minRms;
+  }, [minRms]);
 
   useEffect(() => {
     targetRef.current = target;
@@ -78,7 +83,7 @@ export function useAudioPitch(minRms: number, target: PitchTarget | null = null)
         analyser.getFloatTimeDomainData(buffer);
         analyser.getFloatFrequencyData(frequencyData);
         setFrame(
-          createPitchFrame(buffer, context.sampleRate, performance.now(), minRms, {
+          createPitchFrame(buffer, context.sampleRate, performance.now(), minRmsRef.current, {
             fftSize: analyser.fftSize,
             frequencyData,
             target: targetRef.current
@@ -90,7 +95,7 @@ export function useAudioPitch(minRms: number, target: PitchTarget | null = null)
     } catch (error) {
       setStatus(error instanceof DOMException && error.name === "NotAllowedError" ? "blocked" : "error");
     }
-  }, [minRms]);
+  }, []);
 
   useEffect(() => stop, [stop]);
 
