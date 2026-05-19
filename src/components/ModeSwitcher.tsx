@@ -7,7 +7,7 @@ type Props = {
 
 export function ModeSwitcher({ mode, onChange }: Props) {
   return (
-    <div className="inline-flex overflow-hidden rounded border border-line bg-ink p-1">
+    <div className="inline-flex overflow-hidden rounded-md border border-line bg-ink/80 p-1 shadow-inner shadow-black/20">
       <button
         className={buttonClass(mode === "ascii")}
         type="button"
@@ -33,6 +33,6 @@ export function ModeSwitcher({ mode, onChange }: Props) {
 function buttonClass(active: boolean) {
   return [
     "flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition",
-    active ? "bg-action text-ink" : "text-slate-300 hover:bg-panel"
+    active ? "bg-action text-ink shadow-sm" : "text-slate-300 hover:bg-panel"
   ].join(" ");
 }

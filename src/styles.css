@@ -6,7 +6,10 @@
   html,
   body {
     margin: 0;
-    background: #1b2a38;
+    background:
+      linear-gradient(135deg, rgba(53, 227, 155, 0.08), transparent 32%),
+      linear-gradient(225deg, rgba(56, 189, 248, 0.09), transparent 34%),
+      #121a24;
     overflow-x: hidden;
   }
 
@@ -17,15 +20,23 @@
 }
 
 @layer components {
+  .workspace-card {
+    @apply rounded-md border border-line/80 bg-panel/90 shadow-xl shadow-black/20 backdrop-blur;
+  }
+
+  .control-input {
+    @apply rounded-md border border-line bg-ink/90 px-3 py-2 text-slate-50 outline-none transition focus:border-action focus:ring-2 focus:ring-action/30;
+  }
+
   .primary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded bg-action px-3 py-2 text-sm font-semibold text-ink transition hover:bg-emerald-300;
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-action px-3 py-2 text-sm font-semibold text-ink shadow-lg shadow-emerald-950/20 transition hover:-translate-y-0.5 hover:bg-emerald-300 active:translate-y-0;
   }
 
   .secondary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded border border-line bg-ink px-3 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-800;
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line bg-ink/80 px-3 py-2 text-sm font-medium text-slate-100 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-800 active:translate-y-0;
   }
 
   .icon-button {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded border border-line bg-ink text-slate-100 transition hover:bg-slate-800;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-md border border-line bg-ink/80 text-slate-100 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-800 active:translate-y-0;
   }
 }

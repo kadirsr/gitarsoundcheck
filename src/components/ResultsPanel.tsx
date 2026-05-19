@@ -16,10 +16,10 @@ export function ResultsPanel({ state, totalNotes }: Props) {
       : Math.round((state.correctCount / (state.correctCount + state.wrongCount)) * 100);
 
   return (
-    <section className="rounded border border-action/40 bg-action/10 p-4">
-      <h2 className="text-lg font-semibold text-white">Exercise complete</h2>
+    <section className="workspace-card border-action/40 bg-action/10 p-4">
+      <h2 className="text-lg font-semibold text-white">Egzersiz tamamlandı</h2>
       <p className="mt-1 text-sm text-emerald-100">
-        {state.correctCount}/{totalNotes} notes completed with {accuracy}% accuracy.
+        {state.correctCount}/{totalNotes} nota tamamlandı. Doğruluk: %{accuracy}.
       </p>
     </section>
   );

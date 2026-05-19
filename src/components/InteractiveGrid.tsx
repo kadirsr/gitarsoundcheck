@@ -62,17 +62,22 @@ export function InteractiveGrid({
   }
 
   return (
-    <section className="space-y-4">
+    <section className="workspace-card space-y-4 p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Interactive grid</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Etkileşimli ızgara</h2>
+            <span className="rounded-full border border-sky-300/30 bg-sky-300/10 px-2 py-0.5 text-xs text-sky-100">
+              Tek nota modu
+            </span>
+          </div>
           <p className="text-sm text-slate-300">
-            Click a cell, enter fret 0-24, and keep one note per step.
+            Hücre seç, perdeyi belirle ve her adımda tek nota bırak.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-sm text-slate-200">
-            Steps
+            Adımlar
             <input
               className="w-20 rounded border border-line bg-ink px-2 py-2 text-slate-50 outline-none focus:ring-2 focus:ring-action/50"
               min={MIN_STEP_COUNT}
@@ -82,18 +87,18 @@ export function InteractiveGrid({
               onChange={(event) => onResize(Number(event.target.value))}
             />
           </label>
-          <button className="icon-button" type="button" title="Add step" onClick={onAddStep}>
+          <button className="icon-button" type="button" title="Adım ekle" onClick={onAddStep}>
             <Plus size={16} aria-hidden="true" />
           </button>
-          <button className="icon-button" type="button" title="Remove step" onClick={onRemoveStep}>
+          <button className="icon-button" type="button" title="Adım sil" onClick={onRemoveStep}>
             <Minus size={16} aria-hidden="true" />
           </button>
-          <button className="icon-button" type="button" title="Clear tab" onClick={onClear}>
+          <button className="icon-button" type="button" title="Sekmeyi temizle" onClick={onClear}>
             <Trash2 size={16} aria-hidden="true" />
           </button>
         </div>
       </div>
-      <div className="overflow-auto rounded border border-line bg-ink shadow-xl shadow-black/15">
+      <div className="overflow-auto rounded-md border border-line bg-ink/95 shadow-xl shadow-black/20">
         <div
           className="grid min-w-max"
           style={{
@@ -101,7 +106,7 @@ export function InteractiveGrid({
           }}
         >
           <div className="sticky left-0 z-10 border-b border-r border-line bg-ink px-2 py-2 text-xs text-slate-300">
-            Step
+            Adım
           </div>
           {Array.from({ length: grid.stepCount }, (_, index) => (
             <div
@@ -135,7 +140,7 @@ export function InteractiveGrid({
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-300">
         <Eraser size={14} aria-hidden="true" />
-        Backspace/Delete clears the selected note. Arrow keys move the selection.
+        Backspace/Delete seçili notayı temizler. Ok tuşları seçimi taşır.
       </div>
     </section>
   );
@@ -239,7 +244,7 @@ function FretPicker({
         Perde
       </label>
       <select
-        className="w-full rounded border border-line bg-ink px-2 py-2 text-sm text-slate-50 outline-none focus:ring-2 focus:ring-action/50"
+        className="control-input w-full text-sm"
         id="fret-picker"
         ref={selectRef}
         value={draftFret}

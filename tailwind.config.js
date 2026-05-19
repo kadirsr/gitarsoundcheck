@@ -4,11 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#1b2a38",
-        panel: "#284052",
-        line: "#5f7688",
-        action: "#24d18f",
-        warn: "#f4a62a",
+        ink: "#121a24",
+        panel: "#1b2633",
+        line: "#3b4b5d",
+        action: "#35e39b",
+        warn: "#f5b84b",
         danger: "#ef4444"
       }
     }

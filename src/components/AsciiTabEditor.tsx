@@ -6,15 +6,15 @@ type Props = {
 
 export function AsciiTabEditor({ value, warnings, onChange }: Props) {
   return (
-    <section className="space-y-3">
+    <section className="workspace-card space-y-3 p-4">
       <div>
-        <h2 className="text-lg font-semibold text-white">ASCII tab</h2>
-        <p className="text-sm text-slate-400">
-          Paste or edit a single-note guitar tab. Multi-digit frets are supported.
+        <h2 className="text-lg font-semibold text-white">ASCII sekme</h2>
+        <p className="text-sm text-slate-300">
+          Tek notalı gitar tabını yapıştır veya düzenle. Çift haneli perdeler desteklenir.
         </p>
       </div>
       <textarea
-        className="min-h-72 w-full resize-y rounded border border-line bg-ink p-4 font-mono text-sm leading-7 text-slate-100 outline-none ring-action/50 transition focus:ring-2"
+        className="min-h-72 w-full resize-y rounded-md border border-line bg-ink/90 p-4 font-mono text-sm leading-7 text-slate-100 outline-none ring-action/50 transition focus:ring-2"
         value={value}
         spellCheck={false}
         onChange={(event) => onChange(event.target.value)}

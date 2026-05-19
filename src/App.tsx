@@ -213,7 +213,7 @@ function App() {
 
     if (!window.isSecureContext) {
       setLastError(
-        "Microphone needs localhost or HTTPS. This server preview can show the app, but audio practice needs HTTPS."
+        "Mikrofonla pratik için localhost veya HTTPS gerekir. Bu sunucu önizlemesi arayüzü gösterir; ses analizi için HTTPS açmalıyız."
       );
       window.scrollTo({ left: 0, top: window.scrollY });
       return;
@@ -240,18 +240,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-ink text-slate-100">
+    <div className="min-h-screen overflow-x-hidden text-slate-100">
       <Header />
-      <main className="mx-auto grid max-w-7xl gap-5 overflow-x-hidden px-4 py-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <main className="mx-auto grid max-w-7xl gap-5 overflow-x-hidden px-4 py-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
-          <section className="rounded border border-line bg-panel p-4">
+          <section className="workspace-card p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-64 flex-1">
-                <label className="text-sm text-slate-400" htmlFor="tab-title">
-                  Tab title
+                <label className="text-sm font-medium text-slate-300" htmlFor="tab-title">
+                  Sekme başlığı
                 </label>
                 <input
-                  className="mt-1 w-full rounded border border-line bg-ink px-3 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-action/50"
+                  className="control-input mt-1 w-full"
                   id="tab-title"
                   value={draftTitle}
                   onChange={(event) => setDraftTitle(event.target.value)}
@@ -259,26 +259,26 @@ function App() {
               </div>
               <ModeSwitcher mode={mode} onChange={setMode} />
               <button className="secondary-button" type="button" onClick={handleLoadExample}>
-                Load example
+                Örnek yükle
               </button>
             </div>
           </section>
 
           {lastError ? (
-            <p className="rounded border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-100">
+            <p className="rounded-md border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-50 shadow-lg shadow-black/10">
               {lastError}
             </p>
           ) : null}
 
           {audioStatus === "blocked" ? (
-            <p className="rounded border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-amber-100">
-              Microphone permission was blocked. Allow access in the browser to use automatic pitch detection.
+            <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-amber-100">
+              Mikrofon izni engellendi. Otomatik nota algılama için tarayıcıdan mikrofon erişimine izin ver.
             </p>
           ) : null}
 
           {audioStatus === "insecure" ? (
-            <p className="rounded border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-50">
-              This address is HTTP. Browsers only ask for microphone permission on localhost or HTTPS, so the server preview needs HTTPS before automatic listening can work.
+            <p className="rounded-md border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-50">
+              Bu adres HTTP. Tarayıcılar mikrofon iznini localhost veya HTTPS üzerinde ister; sunucu önizlemesinde otomatik dinleme için HTTPS gerekir.
             </p>
           ) : null}
 
