@@ -2,7 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPitchFrame } from "../lib/audio/pitchDetection";
 import type { PitchFrame } from "../types";
 
-type AudioStatus = "idle" | "requesting" | "listening" | "blocked" | "error";
+type AudioStatus =
+  | "idle"
+  | "requesting"
+  | "listening"
+  | "blocked"
+  | "insecure"
+  | "unavailable"
+  | "error";
 
 export function useAudioPitch(minRms: number) {
   const [status, setStatus] = useState<AudioStatus>("idle");
@@ -30,6 +37,16 @@ export function useAudioPitch(minRms: number) {
   const start = useCallback(async () => {
     try {
       setStatus("requesting");
+      if (!window.isSecureContext) {
+        setStatus("insecure");
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus("unavailable");
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const context = new AudioContext();
       const analyser = context.createAnalyser();

@@ -34,15 +34,15 @@ export function InteractiveGrid({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-white">Interactive grid</h2>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-300">
             Click a cell, enter fret 0-24, and keep one note per step.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-slate-200">
             Steps
             <input
-              className="w-20 rounded border border-line bg-ink px-2 py-2 text-slate-100 outline-none focus:ring-2 focus:ring-action/50"
+              className="w-20 rounded border border-line bg-ink px-2 py-2 text-slate-50 outline-none focus:ring-2 focus:ring-action/50"
               min={MIN_STEP_COUNT}
               max={MAX_STEP_COUNT}
               type="number"
@@ -61,18 +61,23 @@ export function InteractiveGrid({
           </button>
         </div>
       </div>
-      <div className="overflow-auto rounded border border-line bg-ink">
+      <div className="overflow-auto rounded border border-line bg-ink shadow-xl shadow-black/15">
         <div
           className="grid min-w-max"
           style={{
             gridTemplateColumns: `56px repeat(${grid.stepCount}, minmax(40px, 40px))`
           }}
         >
-          <div className="sticky left-0 z-10 border-b border-r border-line bg-ink px-2 py-2 text-xs text-slate-400">
+          <div className="sticky left-0 z-10 border-b border-r border-line bg-ink px-2 py-2 text-xs text-slate-300">
             Step
           </div>
           {Array.from({ length: grid.stepCount }, (_, index) => (
-            <div className="border-b border-line px-1 py-2 text-center text-xs text-slate-500" key={index}>
+            <div
+              className={`border-b border-line px-1 py-2 text-center text-xs ${
+                currentStep === index ? "bg-sky-300 text-ink" : "text-slate-400"
+              }`}
+              key={index}
+            >
               {String(index + 1).padStart(2, "0")}
             </div>
           ))}
@@ -92,7 +97,7 @@ export function InteractiveGrid({
           ))}
         </div>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-400">
+      <div className="flex items-center gap-2 text-xs text-slate-300">
         <Eraser size={14} aria-hidden="true" />
         Backspace/Delete clears the selected note. Arrow keys move the selection.
       </div>
@@ -125,7 +130,7 @@ function Row({
 }: RowProps) {
   return (
     <>
-      <div className="sticky left-0 z-10 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-slate-300">
+      <div className="sticky left-0 z-10 border-r border-line bg-ink px-3 py-2 font-mono text-sm text-slate-200">
         {stringLabel}
       </div>
       {grid.cells[stringName].map((fret, stepIndex) => {
@@ -136,6 +141,7 @@ function Row({
           current: currentStep === stepIndex,
           correct: correctSteps.has(stepIndex),
           wrong: wrongSteps.has(stepIndex),
+          playhead: currentStep === stepIndex,
           selected
         });
 
@@ -173,28 +179,33 @@ function getCellStatusClass({
   current,
   correct,
   wrong,
+  playhead,
   selected
 }: {
   hasNote: boolean;
   current: boolean;
   correct: boolean;
   wrong: boolean;
+  playhead: boolean;
   selected: boolean;
 }) {
   if (correct && hasNote) {
-    return "bg-action/70 text-ink";
+    return "bg-emerald-400 text-ink shadow-inner shadow-white/20";
   }
   if (wrong && hasNote) {
-    return "bg-danger/70 text-white";
+    return "bg-red-500 text-white shadow-inner shadow-white/20";
   }
   if (current && hasNote) {
-    return "bg-sky-400/70 text-ink";
+    return "bg-sky-300 text-ink ring-2 ring-sky-100";
   }
   if (selected) {
     return "bg-panel text-white ring-2 ring-action";
   }
   if (hasNote) {
-    return "bg-slate-700 text-white hover:bg-slate-600";
+    return "bg-slate-600 text-white hover:bg-slate-500";
   }
-  return "text-slate-500 hover:bg-panel";
+  if (playhead) {
+    return "bg-sky-300/20 text-slate-200";
+  }
+  return "text-slate-400 hover:bg-panel";
 }

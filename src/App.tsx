@@ -267,6 +267,12 @@ function App() {
             </p>
           ) : null}
 
+          {audioStatus === "insecure" ? (
+            <p className="rounded border border-warn/50 bg-warn/15 px-3 py-2 text-sm text-amber-50">
+              This address is HTTP. Browsers only ask for microphone permission on localhost or HTTPS, so the server preview needs HTTPS before automatic listening can work.
+            </p>
+          ) : null}
+
           {mode === "ascii" ? (
             <AsciiTabEditor
               onChange={handleAsciiChange}
@@ -304,6 +310,7 @@ function App() {
         </div>
         <PracticePanel
           bpm={settings.bpm}
+          audioStatus={audioStatus}
           metronomeEnabled={metronomeEnabled}
           mode={settings.practiceMode}
           notes={parseResult.notes}
