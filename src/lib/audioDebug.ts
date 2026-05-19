@@ -23,6 +23,9 @@ type AudioDebugEntry = {
   midiDelta: number | null;
   rms: number;
   confidence: number;
+  detectionMethod: string;
+  targetScore: number | null;
+  targetHarmonicHits: number | null;
   tolerance: number;
   result: string;
   reason: string;
@@ -124,6 +127,10 @@ function createDebugEntry(
     midiDelta,
     rms: Number(frame.rms.toFixed(4)),
     confidence: Number(frame.confidence.toFixed(3)),
+    detectionMethod: frame.detectionMethod ?? "none",
+    targetScore:
+      frame.targetScore === undefined ? null : Number(frame.targetScore.toFixed(3)),
+    targetHarmonicHits: frame.targetRatio ?? null,
     tolerance,
     result,
     reason
@@ -150,6 +157,10 @@ function getReason({
   }
 
   if (frame.frequency === null || frame.midi === null || frame.centsOff === null) {
+    if (frame.targetScore !== undefined) {
+      return `target harmonic score ${frame.targetScore.toFixed(2)} below threshold`;
+    }
+
     return "audio level exists but pitch detector did not lock a frequency";
   }
 

@@ -45,6 +45,14 @@ export type PitchFrame = {
   rms: number;
   confidence: number;
   timestamp: number;
+  detectionMethod?: "none" | "yin" | "mpm" | "target";
+  targetScore?: number;
+  targetRatio?: number;
+};
+
+export type PitchTarget = {
+  frequency: number;
+  midi: number;
 };
 
 export type PracticeMode = "WAIT" | "FLOW";

@@ -5,7 +5,8 @@ import {
   EXAMPLE_TAB,
   EXAMPLE_TABS,
   GUITAR_STRINGS,
-  MAX_STEP_COUNT
+  MAX_STEP_COUNT,
+  STEP_WIDTH
 } from "./constants";
 import { AsciiTabEditor } from "./components/AsciiTabEditor";
 import { Header } from "./components/Header";
@@ -42,7 +43,14 @@ import {
   saveDraft,
   saveSettings
 } from "./lib/storage";
-import type { GuitarString, PracticeMode, TabGrid, TolerancePreset } from "./types";
+import type {
+  GuitarString,
+  ParsedNote,
+  PitchTarget,
+  PracticeMode,
+  TabGrid,
+  TolerancePreset
+} from "./types";
 
 function extendGridIfNeeded(grid: TabGrid, stepIndex: number, fret: number | null) {
   if (fret === null || stepIndex < grid.stepCount - AUTO_EXTEND_THRESHOLD) {
@@ -58,6 +66,22 @@ function extendGridAfterLastStep(grid: TabGrid) {
   }
 
   return resizeGrid(grid, Math.min(MAX_STEP_COUNT, grid.stepCount + AUTO_EXTEND_STEP_COUNT));
+}
+
+function getNoteStep(note: ParsedNote): number {
+  return Math.floor(note.columnIndex / STEP_WIDTH);
+}
+
+function getExpectedAudioTarget(
+  notes: ParsedNote[],
+  practiceState: { currentIndex: number; currentStep: number; mode: PracticeMode }
+): PitchTarget | null {
+  const note =
+    practiceState.mode === "FLOW"
+      ? notes.find((item) => getNoteStep(item) === practiceState.currentStep)
+      : notes[practiceState.currentIndex];
+
+  return note ? { frequency: note.expectedFrequency, midi: note.expectedMidi } : null;
 }
 
 function App() {
@@ -80,8 +104,13 @@ function App() {
   const lastAudioDebugLogRef = useRef(0);
 
   const parseResult = useMemo(() => parseTab(tabText), [tabText]);
+  const audioTarget = useMemo(
+    () => getExpectedAudioTarget(parseResult.notes, practiceState),
+    [parseResult.notes, practiceState]
+  );
   const { frame, status: audioStatus, start: startAudio, stop: stopAudio } = useAudioPitch(
-    settings.microphoneSensitivity
+    settings.microphoneSensitivity,
+    audioTarget
   );
 
   useMetronome(settings.bpm, metronomeEnabled);
@@ -239,7 +268,7 @@ function App() {
   const noteStepBySequence = useMemo(() => {
     const map = new Map<number, number>();
     parseResult.notes.forEach((note) => {
-      map.set(note.sequenceIndex, Math.floor(note.columnIndex / 3));
+      map.set(note.sequenceIndex, getNoteStep(note));
     });
     return map;
   }, [parseResult.notes]);

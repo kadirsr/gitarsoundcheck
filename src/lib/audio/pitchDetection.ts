@@ -1,5 +1,5 @@
 import { MIN_RMS } from "../../constants";
-import type { PitchFrame } from "../../types";
+import type { PitchFrame, PitchTarget } from "../../types";
 import {
   centsOffFromMidi,
   frequencyToMidi,
@@ -11,21 +11,56 @@ const MAX_GUITAR_FREQUENCY = 1400;
 const YIN_THRESHOLD = 0.18;
 const YIN_FALLBACK_THRESHOLD = 0.35;
 const MPM_CLARITY_THRESHOLD = 0.45;
+const TARGET_SCORE_THRESHOLD = 2.4;
 
 export function createPitchFrame(
   buffer: Float32Array,
   sampleRate: number,
   timestamp = performance.now(),
-  minRms = MIN_RMS
+  minRms = MIN_RMS,
+  options: {
+    frequencyData?: Float32Array;
+    fftSize?: number;
+    target?: PitchTarget | null;
+  } = {}
 ): PitchFrame {
   const rms = calculateRms(buffer);
   if (rms < minRms) {
     return emptyPitchFrame(rms, timestamp);
   }
 
-  const frequency = detectPitch(buffer, sampleRate);
+  const targetResult =
+    options.frequencyData && options.fftSize && options.target
+      ? detectTargetFrequency(
+          options.frequencyData,
+          sampleRate,
+          options.fftSize,
+          options.target.frequency
+        )
+      : null;
+
+  if (targetResult?.matched && options.target) {
+    return {
+      frequency: options.target.frequency,
+      midi: options.target.midi,
+      noteName: midiToNoteName(options.target.midi),
+      centsOff: 0,
+      rms,
+      confidence: Math.max(0, Math.min(1, targetResult.score / 8)),
+      timestamp,
+      detectionMethod: "target",
+      targetScore: targetResult.score,
+      targetRatio: targetResult.harmonicHits
+    };
+  }
+
+  const pitchResult = detectPitch(buffer, sampleRate);
+  const frequency = pitchResult?.frequency ?? null;
   if (frequency === null) {
-    return emptyPitchFrame(rms, timestamp);
+    return emptyPitchFrame(rms, timestamp, {
+      targetScore: targetResult?.score,
+      targetRatio: targetResult?.harmonicHits
+    });
   }
 
   const midi = frequencyToMidi(frequency);
@@ -38,7 +73,10 @@ export function createPitchFrame(
     centsOff,
     rms,
     confidence: Math.max(0, Math.min(1, rms * 20)),
-    timestamp
+    timestamp,
+    detectionMethod: pitchResult?.method ?? "none",
+    targetScore: targetResult?.score,
+    targetRatio: targetResult?.harmonicHits
   };
 }
 
@@ -50,7 +88,10 @@ export function calculateRms(buffer: Float32Array): number {
   return Math.sqrt(sum / buffer.length);
 }
 
-function detectPitch(buffer: Float32Array, sampleRate: number): number | null {
+function detectPitch(
+  buffer: Float32Array,
+  sampleRate: number
+): { frequency: number; method: "yin" | "mpm" } | null {
   const normalized = removeDcOffset(buffer);
   const clipped = centerClip(normalized);
   const tauMin = Math.max(2, Math.floor(sampleRate / MAX_GUITAR_FREQUENCY));
@@ -59,8 +100,12 @@ function detectPitch(buffer: Float32Array, sampleRate: number): number | null {
     Math.ceil(sampleRate / MIN_GUITAR_FREQUENCY)
   );
   const yinFrequency = detectPitchWithYin(clipped, sampleRate, tauMin, tauMax);
+  if (yinFrequency !== null) {
+    return { frequency: yinFrequency, method: "yin" };
+  }
 
-  return yinFrequency ?? detectPitchWithMpm(clipped, sampleRate, tauMin, tauMax);
+  const mpmFrequency = detectPitchWithMpm(clipped, sampleRate, tauMin, tauMax);
+  return mpmFrequency === null ? null : { frequency: mpmFrequency, method: "mpm" };
 }
 
 function detectPitchWithYin(
@@ -264,7 +309,87 @@ function calculateNsdfAtTau(buffer: Float32Array, tau: number): number {
   return divisor === 0 ? 0 : (2 * acf) / divisor;
 }
 
-function emptyPitchFrame(rms: number, timestamp: number): PitchFrame {
+function detectTargetFrequency(
+  frequencyData: Float32Array,
+  sampleRate: number,
+  fftSize: number,
+  targetFrequency: number
+): { harmonicHits: number; matched: boolean; score: number } {
+  const harmonicScores: number[] = [];
+
+  for (let harmonic = 1; harmonic <= 6; harmonic += 1) {
+    const frequency = targetFrequency * harmonic;
+    if (frequency > sampleRate / 2) {
+      break;
+    }
+
+    const bin = Math.round((frequency * fftSize) / sampleRate);
+    const signal = maxLinearEnergy(frequencyData, bin, 2);
+    const noise = averageNeighborEnergy(frequencyData, bin, 10, 2);
+    const ratio = signal / Math.max(noise, 1e-12);
+    harmonicScores.push(ratio);
+  }
+
+  const weightedScore =
+    harmonicScores.reduce((sum, ratio, index) => sum + ratio / (index + 1), 0) /
+    Math.max(1, harmonicScores.length);
+  const harmonicHits = harmonicScores.filter((ratio) => ratio >= TARGET_SCORE_THRESHOLD).length;
+  const matched =
+    harmonicHits >= 2 ||
+    harmonicScores[0] >= TARGET_SCORE_THRESHOLD * 1.4 ||
+    weightedScore >= TARGET_SCORE_THRESHOLD * 1.2;
+
+  return { harmonicHits, matched, score: weightedScore };
+}
+
+function maxLinearEnergy(data: Float32Array, centerBin: number, radius: number): number {
+  let maxEnergy = 0;
+  const start = Math.max(0, centerBin - radius);
+  const end = Math.min(data.length - 1, centerBin + radius);
+
+  for (let index = start; index <= end; index += 1) {
+    maxEnergy = Math.max(maxEnergy, dbToLinearEnergy(data[index]));
+  }
+
+  return maxEnergy;
+}
+
+function averageNeighborEnergy(
+  data: Float32Array,
+  centerBin: number,
+  radius: number,
+  excludeRadius: number
+): number {
+  let sum = 0;
+  let count = 0;
+  const start = Math.max(0, centerBin - radius);
+  const end = Math.min(data.length - 1, centerBin + radius);
+
+  for (let index = start; index <= end; index += 1) {
+    if (Math.abs(index - centerBin) <= excludeRadius) {
+      continue;
+    }
+
+    sum += dbToLinearEnergy(data[index]);
+    count += 1;
+  }
+
+  return count === 0 ? 1e-12 : sum / count;
+}
+
+function dbToLinearEnergy(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.pow(10, value / 10);
+}
+
+function emptyPitchFrame(
+  rms: number,
+  timestamp: number,
+  diagnostics: Pick<PitchFrame, "targetRatio" | "targetScore"> = {}
+): PitchFrame {
   return {
     frequency: null,
     midi: null,
@@ -272,6 +397,8 @@ function emptyPitchFrame(rms: number, timestamp: number): PitchFrame {
     centsOff: null,
     rms,
     confidence: 0,
-    timestamp
+    timestamp,
+    detectionMethod: "none",
+    ...diagnostics
   };
 }

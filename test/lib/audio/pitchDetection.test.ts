@@ -26,6 +26,18 @@ describe("pitchDetection", () => {
     expect(frame.midi).toBe(55);
   });
 
+  it("accepts the expected note from spectral harmonic energy", () => {
+    const frame = createPitchFrame(createNoise(8192), SAMPLE_RATE, 0, 0.001, {
+      fftSize: 8192,
+      frequencyData: createTargetSpectrum(196, 8192),
+      target: { frequency: 196, midi: 55 }
+    });
+
+    expect(frame.detectionMethod).toBe("target");
+    expect(frame.noteName).toBe("G3");
+    expect(frame.midi).toBe(55);
+  });
+
   it("ignores sub-guitar frequencies that caused false low-note locks", () => {
     const frame = createPitchFrame(createSineWave(46.25, 4096), SAMPLE_RATE, 0, 0.001);
 
@@ -51,4 +63,23 @@ function createGuitarLikeWave(frequency: number, length: number): Float32Array {
 
     return (fundamental + second + third + noise) * envelope;
   });
+}
+
+function createNoise(length: number): Float32Array {
+  return Float32Array.from({ length }, (_, index) =>
+    Math.sin(index * 1.37) * 0.02
+  );
+}
+
+function createTargetSpectrum(frequency: number, fftSize: number): Float32Array {
+  const data = new Float32Array(fftSize / 2).fill(-95);
+
+  for (let harmonic = 1; harmonic <= 5; harmonic += 1) {
+    const bin = Math.round((frequency * harmonic * fftSize) / SAMPLE_RATE);
+    data[bin] = -28 - harmonic * 2;
+    data[bin - 1] = -36;
+    data[bin + 1] = -36;
+  }
+
+  return data;
 }

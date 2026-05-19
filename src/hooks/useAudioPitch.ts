@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPitchFrame } from "../lib/audio/pitchDetection";
-import type { PitchFrame } from "../types";
+import type { PitchFrame, PitchTarget } from "../types";
 
 type AudioStatus =
   | "idle"
@@ -11,13 +11,18 @@ type AudioStatus =
   | "unavailable"
   | "error";
 
-export function useAudioPitch(minRms: number) {
+export function useAudioPitch(minRms: number, target: PitchTarget | null = null) {
   const [status, setStatus] = useState<AudioStatus>("idle");
   const [frame, setFrame] = useState<PitchFrame | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+  const targetRef = useRef<PitchTarget | null>(target);
+
+  useEffect(() => {
+    targetRef.current = target;
+  }, [target]);
 
   const stop = useCallback(() => {
     if (animationRef.current !== null) {
@@ -56,7 +61,8 @@ export function useAudioPitch(minRms: number) {
       });
       const context = new AudioContext();
       const analyser = context.createAnalyser();
-      analyser.fftSize = 4096;
+      analyser.fftSize = 8192;
+      analyser.smoothingTimeConstant = 0.15;
 
       const source = context.createMediaStreamSource(stream);
       source.connect(analyser);
@@ -67,9 +73,17 @@ export function useAudioPitch(minRms: number) {
       setStatus("listening");
 
       const buffer = new Float32Array(analyser.fftSize);
+      const frequencyData = new Float32Array(analyser.frequencyBinCount);
       const tick = () => {
         analyser.getFloatTimeDomainData(buffer);
-        setFrame(createPitchFrame(buffer, context.sampleRate, performance.now(), minRms));
+        analyser.getFloatFrequencyData(frequencyData);
+        setFrame(
+          createPitchFrame(buffer, context.sampleRate, performance.now(), minRms, {
+            fftSize: analyser.fftSize,
+            frequencyData,
+            target: targetRef.current
+          })
+        );
         animationRef.current = requestAnimationFrame(tick);
       };
       tick();
