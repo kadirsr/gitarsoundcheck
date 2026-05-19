@@ -38,6 +38,30 @@ Audio is processed locally in the browser. No audio is uploaded.
 
 Microphone access generally works on `localhost` or a secure HTTPS domain. If you deploy to a server and the microphone does not start, put the app behind HTTPS with a domain.
 
+## Localhost Microphone Tunnel
+
+Browsers allow microphone access on `localhost`. If TabFlow is running on a remote HTTP server, open an SSH local-forward tunnel and use the app through:
+
+```text
+http://localhost:8093
+```
+
+A safe template is included at:
+
+```text
+scripts\start-tabflow-localhost-tunnel.example.bat
+```
+
+Set the host and key before running it:
+
+```bat
+set TABFLOW_SSH_HOST=user@tailscale-ip
+set TABFLOW_SSH_KEY=%USERPROFILE%\.ssh\minipc2_ed25519
+scripts\start-tabflow-localhost-tunnel.example.bat
+```
+
+Keep the BAT window open while practicing. If the window closes, the tunnel is closed; run the BAT again to reopen it.
+
 ## Docker
 
 Build and run the production static app with Docker Compose:
