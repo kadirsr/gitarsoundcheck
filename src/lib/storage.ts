@@ -53,7 +53,11 @@ export function loadSettings(): StoredSettings {
   }
 
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(rawValue) };
+    const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(rawValue) };
+    return {
+      ...parsed,
+      practiceMode: parsed.practiceMode === "BPM_STRICT" ? "FLOW" : parsed.practiceMode
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }

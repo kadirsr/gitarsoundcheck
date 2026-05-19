@@ -1,4 +1,4 @@
-import { STABLE_NOTE_MS, TOLERANCE_CENTS } from "../constants";
+import { STABLE_NOTE_MS, STEP_WIDTH, TOLERANCE_CENTS } from "../constants";
 import type {
   ParsedNote,
   PitchFrame,
@@ -16,8 +16,11 @@ export function createPracticeState(
     status: "idle",
     mode,
     currentIndex: 0,
+    currentStep: 0,
     correctCount: 0,
     wrongCount: 0,
+    correctSequenceIndices: [],
+    wrongSequenceIndices: [],
     startedAt: null,
     completedAt: null,
     bpm,
@@ -31,8 +34,11 @@ export function startPractice(state: PracticeState, now = Date.now()): PracticeS
     ...state,
     status: "listening",
     currentIndex: 0,
+    currentStep: 0,
     correctCount: 0,
     wrongCount: 0,
+    correctSequenceIndices: [],
+    wrongSequenceIndices: [],
     startedAt: now,
     completedAt: null,
     stableSince: null,
@@ -62,11 +68,27 @@ export function markCurrentCorrect(
 
   const nextIndex = state.currentIndex + 1;
   const completed = nextIndex >= notes.length;
+  const nextNote = notes[nextIndex] ?? null;
+  const correctSequenceIndices = addUnique(
+    state.correctSequenceIndices,
+    notes[state.currentIndex].sequenceIndex
+  );
 
   return {
     ...state,
     currentIndex: nextIndex,
-    correctCount: state.correctCount + 1,
+    currentStep: nextNote ? getNoteStep(nextNote) : state.currentStep,
+    correctSequenceIndices,
+    wrongSequenceIndices: state.wrongSequenceIndices.filter(
+      (sequenceIndex) => sequenceIndex !== notes[state.currentIndex].sequenceIndex
+    ),
+    recentMistakes: state.recentMistakes.filter(
+      (mistake) => mistake.sequenceIndex !== notes[state.currentIndex].sequenceIndex
+    ),
+    correctCount: correctSequenceIndices.length,
+    wrongCount: state.wrongSequenceIndices.filter(
+      (sequenceIndex) => sequenceIndex !== notes[state.currentIndex].sequenceIndex
+    ).length,
     status: completed ? "completed" : state.status,
     completedAt: completed ? now : state.completedAt,
     stableSince: null
@@ -83,7 +105,12 @@ export function evaluatePitchFrame(
     return state;
   }
 
-  const expected = notes[state.currentIndex];
+  const expected =
+    state.mode === "FLOW" ? findNoteAtStep(notes, state.currentStep) : notes[state.currentIndex];
+  if (!expected) {
+    return { ...state, stableSince: null };
+  }
+
   if (frame.midi === null || frame.centsOff === null) {
     return { ...state, stableSince: null };
   }
@@ -91,6 +118,14 @@ export function evaluatePitchFrame(
   const isCorrect =
     frame.midi === expected.expectedMidi &&
     Math.abs(frame.centsOff) <= TOLERANCE_CENTS[tolerancePreset];
+
+  if (state.mode === "FLOW") {
+    if (isCorrect) {
+      return markFlowCorrect(state, expected, frame.timestamp);
+    }
+
+    return recordMistakeIfNeeded({ ...state, stableSince: null }, expected, frame, frame.timestamp);
+  }
 
   if (!isCorrect) {
     return recordMistakeIfNeeded(
@@ -109,6 +144,76 @@ export function evaluatePitchFrame(
   return { ...state, stableSince };
 }
 
+export function advanceFlowByTime(
+  state: PracticeState,
+  notes: ParsedNote[],
+  now = Date.now()
+): PracticeState {
+  if (
+    state.status !== "listening" ||
+    state.mode !== "FLOW" ||
+    state.startedAt === null ||
+    notes.length === 0
+  ) {
+    return state;
+  }
+
+  const msPerStep = 60000 / Math.max(1, state.bpm);
+  const targetStep = Math.max(0, Math.floor((now - state.startedAt) / msPerStep));
+  const lastStep = getNoteStep(notes[notes.length - 1]);
+
+  if (targetStep <= state.currentStep) {
+    return state;
+  }
+
+  let nextState = state;
+  for (const note of notes) {
+    const noteStep = getNoteStep(note);
+    if (
+      noteStep < state.currentStep ||
+      noteStep >= targetStep ||
+      nextState.correctSequenceIndices.includes(note.sequenceIndex)
+    ) {
+      continue;
+    }
+
+    nextState = markFlowWrong(nextState, note, now, null);
+  }
+
+  const completed = targetStep > lastStep;
+  return {
+    ...nextState,
+    currentStep: targetStep,
+    currentIndex: findNextNoteIndex(notes, targetStep),
+    status: completed ? "completed" : nextState.status,
+    completedAt: completed ? now : nextState.completedAt,
+    stableSince: null
+  };
+}
+
+function markFlowCorrect(
+  state: PracticeState,
+  expected: ParsedNote,
+  now: number
+): PracticeState {
+  const correctSequenceIndices = addUnique(state.correctSequenceIndices, expected.sequenceIndex);
+  const wrongSequenceIndices = state.wrongSequenceIndices.filter(
+    (sequenceIndex) => sequenceIndex !== expected.sequenceIndex
+  );
+
+  return {
+    ...state,
+    correctSequenceIndices,
+    wrongSequenceIndices,
+    recentMistakes: state.recentMistakes.filter(
+      (mistake) => mistake.sequenceIndex !== expected.sequenceIndex
+    ),
+    correctCount: correctSequenceIndices.length,
+    wrongCount: wrongSequenceIndices.length,
+    stableSince: now
+  };
+}
+
 function recordMistakeIfNeeded(
   state: PracticeState,
   expected: ParsedNote,
@@ -116,24 +221,60 @@ function recordMistakeIfNeeded(
   now: number
 ): PracticeState {
   const previous = state.recentMistakes[0];
-  if (previous && now - previous.timestamp < 350) {
+  if (
+    state.wrongSequenceIndices.includes(expected.sequenceIndex) ||
+    (previous && now - previous.timestamp < 350)
+  ) {
+    return state;
+  }
+
+  return markFlowWrong(state, expected, now, frame);
+}
+
+function markFlowWrong(
+  state: PracticeState,
+  expected: ParsedNote,
+  now: number,
+  frame: PitchFrame | null
+): PracticeState {
+  if (state.correctSequenceIndices.includes(expected.sequenceIndex)) {
     return state;
   }
 
   const mistake: PracticeMistake = {
     expectedNoteName: expected.expectedNoteName,
-    detectedNoteName: frame.noteName,
+    detectedNoteName: frame?.noteName ?? null,
     expectedMidi: expected.expectedMidi,
-    detectedMidi: frame.midi,
+    detectedMidi: frame?.midi ?? null,
     stringLabel: expected.stringLabel,
     fret: expected.fret,
     sequenceIndex: expected.sequenceIndex,
     timestamp: now
   };
 
+  const wrongSequenceIndices = addUnique(state.wrongSequenceIndices, expected.sequenceIndex);
+
   return {
     ...state,
-    wrongCount: state.wrongCount + 1,
+    wrongSequenceIndices,
+    wrongCount: wrongSequenceIndices.length,
     recentMistakes: [mistake, ...state.recentMistakes].slice(0, 8)
   };
+}
+
+function addUnique(values: number[], value: number): number[] {
+  return values.includes(value) ? values : [...values, value];
+}
+
+function getNoteStep(note: ParsedNote): number {
+  return Math.floor(note.columnIndex / STEP_WIDTH);
+}
+
+function findNoteAtStep(notes: ParsedNote[], stepIndex: number): ParsedNote | null {
+  return notes.find((note) => getNoteStep(note) === stepIndex) ?? null;
+}
+
+function findNextNoteIndex(notes: ParsedNote[], stepIndex: number): number {
+  const index = notes.findIndex((note) => getNoteStep(note) >= stepIndex);
+  return index === -1 ? notes.length : index;
 }

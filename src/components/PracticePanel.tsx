@@ -99,7 +99,9 @@ export function PracticePanel({
         </div>
 
         <p className="mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-slate-600">
-          Mikrofon dinlerken doğru nota kısa süre sabit duyulursa otomatik işaretlenir.
+          {mode === "FLOW"
+            ? "BPM akış modunda player durmaz; süre içinde doğru nota duyulursa yeşil, kaçarsa kırmızı olur."
+            : "Beni bekle modunda doğru nota kısa süre sabit duyulunca sonraki notaya geçilir."}
         </p>
       </section>
 
@@ -125,8 +127,8 @@ export function PracticePanel({
               value={mode}
               onChange={(event) => onModeChange(event.target.value as PracticeMode)}
             >
-              <option value="WAIT">Bekleme modu</option>
-              <option value="BPM_STRICT">BPM strict</option>
+              <option value="WAIT">Beni bekle</option>
+              <option value="FLOW">BPM akış modu</option>
             </select>
           </label>
 

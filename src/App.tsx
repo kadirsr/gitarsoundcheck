@@ -25,6 +25,7 @@ import {
 import { parseTab } from "./lib/tabParser";
 import { renderGridToAscii } from "./lib/tabRenderer";
 import {
+  advanceFlowByTime,
   createPracticeState,
   evaluatePitchFrame,
   startPractice
@@ -130,6 +131,24 @@ function App() {
   }, [frame, parseResult.notes, settings.tolerance]);
 
   useEffect(() => {
+    if (practiceState.status !== "listening" || practiceState.mode !== "FLOW") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setPracticeState((current) => advanceFlowByTime(current, parseResult.notes));
+    }, 50);
+
+    return () => window.clearInterval(interval);
+  }, [parseResult.notes, practiceState.mode, practiceState.status]);
+
+  useEffect(() => {
+    if (practiceState.status === "completed") {
+      stopAudio();
+    }
+  }, [practiceState.status, stopAudio]);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (!selectedCell || mode !== "grid") {
         return;
@@ -202,27 +221,38 @@ function App() {
 
   const correctSteps = useMemo(() => {
     const steps = new Set<number>();
-    parseResult.notes.slice(0, practiceState.currentIndex).forEach((note) => {
+    parseResult.notes.forEach((note) => {
+      if (!practiceState.correctSequenceIndices.includes(note.sequenceIndex)) {
+        return;
+      }
+
       const step = noteStepBySequence.get(note.sequenceIndex);
       if (step !== undefined) {
         steps.add(step);
       }
     });
     return steps;
-  }, [noteStepBySequence, parseResult.notes, practiceState.currentIndex]);
+  }, [noteStepBySequence, parseResult.notes, practiceState.correctSequenceIndices]);
 
   const wrongSteps = useMemo(() => {
     const steps = new Set<number>();
     practiceState.recentMistakes.forEach((mistake) => {
+      if (practiceState.correctSequenceIndices.includes(mistake.sequenceIndex)) {
+        return;
+      }
+
       const step = noteStepBySequence.get(mistake.sequenceIndex);
       if (step !== undefined) {
         steps.add(step);
       }
     });
     return steps;
-  }, [noteStepBySequence, practiceState.recentMistakes]);
+  }, [noteStepBySequence, practiceState.correctSequenceIndices, practiceState.recentMistakes]);
 
-  const currentStep = noteStepBySequence.get(practiceState.currentIndex) ?? null;
+  const currentStep =
+    practiceState.mode === "FLOW" && practiceState.status === "listening"
+      ? practiceState.currentStep
+      : noteStepBySequence.get(practiceState.currentIndex) ?? null;
 
   function handleAsciiChange(nextText: string) {
     setTabText(nextText);

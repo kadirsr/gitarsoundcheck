@@ -47,7 +47,7 @@ export type PitchFrame = {
   timestamp: number;
 };
 
-export type PracticeMode = "WAIT" | "BPM_STRICT";
+export type PracticeMode = "WAIT" | "FLOW";
 
 export type PracticeStatus = "idle" | "listening" | "paused" | "completed";
 
@@ -66,8 +66,11 @@ export type PracticeState = {
   status: PracticeStatus;
   mode: PracticeMode;
   currentIndex: number;
+  currentStep: number;
   correctCount: number;
   wrongCount: number;
+  correctSequenceIndices: number[];
+  wrongSequenceIndices: number[];
   startedAt: number | null;
   completedAt: number | null;
   bpm: number;
