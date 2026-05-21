@@ -64,6 +64,26 @@ describe("practiceEngine", () => {
     expect(state.currentIndex).toBe(1);
   });
 
+  it("does not accept matching ambient noise as a played note", () => {
+    let state = startPractice(createPracticeState(), 0);
+    const frame: PitchFrame = {
+      frequency: 146.83,
+      midi: 50,
+      noteName: "D3",
+      centsOff: 0,
+      rms: 0.003,
+      peak: 0.006,
+      confidence: 1,
+      noteActive: false,
+      timestamp: 120
+    };
+
+    state = evaluatePitchFrame(state, notes, frame, "NORMAL");
+    expect(state.currentIndex).toBe(0);
+    expect(state.correctCount).toBe(0);
+    expect(state.wrongCount).toBe(0);
+  });
+
   it("marks flow mode notes correct without waiting for stability", () => {
     const state = startPractice(createPracticeState(60, "FLOW"), 0);
     const frame: PitchFrame = {

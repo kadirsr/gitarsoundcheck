@@ -23,9 +23,13 @@ type AudioDebugEntry = {
   midiDelta: number | null;
   rms: number;
   peak: number | null;
+  activityRatio: number | null;
   confidence: number;
   detectionMethod: string;
   inputThreshold: number | null;
+  noiseFloorRms: number | null;
+  noteActive: boolean | null;
+  noteOnset: boolean | null;
   rejectionReason: string | null;
   targetScore: number | null;
   targetHarmonicHits: number | null;
@@ -130,10 +134,16 @@ function createDebugEntry(
     midiDelta,
     rms: Number(frame.rms.toFixed(6)),
     peak: frame.peak === undefined ? null : Number(frame.peak.toFixed(6)),
+    activityRatio:
+      frame.activityRatio === undefined ? null : Number(frame.activityRatio.toFixed(2)),
     confidence: Number(frame.confidence.toFixed(3)),
     detectionMethod: frame.detectionMethod ?? "none",
     inputThreshold:
       frame.inputThreshold === undefined ? null : Number(frame.inputThreshold.toFixed(4)),
+    noiseFloorRms:
+      frame.noiseFloorRms === undefined ? null : Number(frame.noiseFloorRms.toFixed(6)),
+    noteActive: frame.noteActive ?? null,
+    noteOnset: frame.noteOnset ?? null,
     rejectionReason: frame.rejectionReason ?? null,
     targetScore:
       frame.targetScore === undefined ? null : Number(frame.targetScore.toFixed(3)),
@@ -161,6 +171,10 @@ function getReason({
 }): string {
   if (!expected) {
     return "current step has no note";
+  }
+
+  if (frame.noteActive === false) {
+    return "microphone signal is below the active-note gate";
   }
 
   if (frame.frequency === null || frame.midi === null || frame.centsOff === null) {

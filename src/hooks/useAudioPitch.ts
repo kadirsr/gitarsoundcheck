@@ -17,6 +17,10 @@ type AudioStatus =
   | "error";
 
 const ANALYSIS_GAIN = 10;
+const NOTE_ACTIVE_MIN_RMS_MULTIPLIER = 2;
+const NOTE_ACTIVE_MIN_PEAK_MULTIPLIER = 4;
+const NOTE_ACTIVE_PEAK_RATIO = 1.8;
+const NOTE_ACTIVE_RMS_RATIO = 2.8;
 const SIGNAL_PEAK_FLOOR = 0.00001;
 
 function createIdleDiagnostics(): AudioDiagnostics {
@@ -48,6 +52,9 @@ export function useAudioPitch(
   const inputDevicesRef = useRef<AudioInputDevice[]>([]);
   const lastDiagnosticsUpdateRef = useRef(0);
   const minRmsRef = useRef(minRms);
+  const noiseFloorPeakRef = useRef(0);
+  const noiseFloorRmsRef = useRef(0);
+  const noteActiveRef = useRef(false);
   const selectedDeviceIdRef = useRef(selectedDeviceId);
   const silentFrameCountRef = useRef(0);
   const targetRef = useRef<PitchTarget | null>(target);
@@ -107,6 +114,9 @@ export function useAudioPitch(
     void contextRef.current?.close();
     contextRef.current = null;
     analyserRef.current = null;
+    noiseFloorPeakRef.current = 0;
+    noiseFloorRmsRef.current = 0;
+    noteActiveRef.current = false;
     silentFrameCountRef.current = 0;
   }, []);
 
@@ -197,7 +207,7 @@ export function useAudioPitch(
       const tick = () => {
         readTimeDomainData(analyser, buffer, byteBuffer);
         analyser.getFloatFrequencyData(frequencyData);
-        const nextFrame = createPitchFrame(
+        const detectedFrame = createPitchFrame(
           buffer,
           context.sampleRate,
           performance.now(),
@@ -208,6 +218,24 @@ export function useAudioPitch(
             target: targetRef.current
           }
         );
+        const activity = calculateNoteActivity(
+          detectedFrame,
+          minRmsRef.current,
+          noiseFloorRmsRef.current,
+          noiseFloorPeakRef.current,
+          noteActiveRef.current
+        );
+        noiseFloorRmsRef.current = activity.noiseFloorRms;
+        noiseFloorPeakRef.current = activity.noiseFloorPeak;
+        noteActiveRef.current = activity.noteActive;
+
+        const nextFrame: PitchFrame = {
+          ...detectedFrame,
+          activityRatio: activity.activityRatio,
+          noiseFloorRms: activity.noiseFloorRms,
+          noteActive: activity.noteActive,
+          noteOnset: activity.noteOnset
+        };
         setFrame(nextFrame);
 
         const hasSignal = (nextFrame.peak ?? 0) >= SIGNAL_PEAK_FLOOR;
@@ -305,6 +333,58 @@ function hasUsableSignal(buffer: Float32Array): boolean {
     }
   }
   return false;
+}
+
+function calculateNoteActivity(
+  frame: PitchFrame,
+  minRms: number,
+  currentNoiseFloorRms: number,
+  currentNoiseFloorPeak: number,
+  wasActive: boolean
+): {
+  activityRatio: number;
+  noiseFloorPeak: number;
+  noiseFloorRms: number;
+  noteActive: boolean;
+  noteOnset: boolean;
+} {
+  const rms = frame.rms;
+  const peak = frame.peak ?? 0;
+  const floorRms =
+    currentNoiseFloorRms > 0 ? currentNoiseFloorRms : Math.max(minRms, rms);
+  const floorPeak =
+    currentNoiseFloorPeak > 0
+      ? currentNoiseFloorPeak
+      : Math.max(minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER, peak);
+  const rmsThreshold = Math.max(
+    minRms * NOTE_ACTIVE_MIN_RMS_MULTIPLIER,
+    floorRms * NOTE_ACTIVE_RMS_RATIO
+  );
+  const peakThreshold = Math.max(
+    minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER,
+    floorPeak * NOTE_ACTIVE_PEAK_RATIO
+  );
+  const noteActive = rms >= rmsThreshold && peak >= peakThreshold;
+  const nextFloorRms = noteActive ? floorRms : smoothNoiseFloor(floorRms, rms, minRms);
+  const nextFloorPeak = noteActive
+    ? floorPeak
+    : smoothNoiseFloor(floorPeak, peak, minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER);
+
+  return {
+    activityRatio: rms / Math.max(minRms, floorRms),
+    noiseFloorPeak: nextFloorPeak,
+    noiseFloorRms: nextFloorRms,
+    noteActive,
+    noteOnset: noteActive && !wasActive
+  };
+}
+
+function smoothNoiseFloor(current: number, next: number, minimum: number): number {
+  if (current === 0) {
+    return Math.max(minimum, next);
+  }
+
+  return Math.max(minimum, current * 0.96 + next * 0.04);
 }
 
 function normalizeContextState(state: AudioContextState): AudioDiagnostics["contextState"] {

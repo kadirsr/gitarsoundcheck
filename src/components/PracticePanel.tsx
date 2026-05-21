@@ -215,6 +215,7 @@ export function PracticePanel({
           <Metric label="RMS" value={formatSignal(pitchFrame?.rms)} />
           <Metric label="Peak" value={formatSignal(pitchFrame?.peak)} />
           <Metric label="Sinyal" value={getSignalLabel(audioDiagnostics)} />
+          <Metric label="Aktif" value={pitchFrame?.noteActive ? "evet" : "hayir"} />
         </div>
         <AudioDiagnosticsPanel diagnostics={audioDiagnostics} />
         <label className="mt-3 block rounded-md border border-line bg-white/90 px-3 py-2 text-sm text-slate-700">

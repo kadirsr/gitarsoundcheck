@@ -46,8 +46,12 @@ export type PitchFrame = {
   peak?: number;
   confidence: number;
   timestamp: number;
+  activityRatio?: number;
   detectionMethod?: "none" | "yin" | "mpm" | "target";
   inputThreshold?: number;
+  noiseFloorRms?: number;
+  noteActive?: boolean;
+  noteOnset?: boolean;
   rejectionReason?: "rms-low" | "no-lock";
   targetScore?: number;
   targetRatio?: number;

@@ -111,6 +111,10 @@ export function evaluatePitchFrame(
     return { ...state, stableSince: null };
   }
 
+  if (frame.noteActive === false) {
+    return { ...state, stableSince: null };
+  }
+
   if (frame.midi === null || frame.centsOff === null) {
     return { ...state, stableSince: null };
   }
