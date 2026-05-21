@@ -1,4 +1,5 @@
 import { STEP_WIDTH, TOLERANCE_CENTS } from "../constants";
+import { isPlayablePitchFrame } from "./audio/noteActivity";
 import type { ParsedNote, PitchFrame, PracticeState, TolerancePreset } from "../types";
 
 const DEBUG_STORAGE_KEY = "tabflow:debug-audio";
@@ -113,7 +114,8 @@ function createDebugEntry(
   const withinTolerance =
     frame.centsOff !== null && Math.abs(frame.centsOff) <= tolerance;
   const exactMidi = midiDelta === 0;
-  const result = expected && exactMidi && withinTolerance ? "match" : "miss";
+  const playable = isPlayablePitchFrame(frame);
+  const result = expected && playable && exactMidi && withinTolerance ? "match" : "miss";
   const reason = getReason({ expected, exactMidi, frame, midiDelta, tolerance, withinTolerance });
 
   return {
@@ -175,6 +177,14 @@ function getReason({
 
   if (frame.noteActive === false) {
     return "microphone signal is below the active-note gate";
+  }
+
+  if (frame.detectionMethod === "target") {
+    return "target harmonic fallback is diagnostic only; practice needs a real pitch lock";
+  }
+
+  if (frame.detectionMethod === "pitchy" && frame.confidence < 0.82) {
+    return `Pitchy confidence ${frame.confidence.toFixed(2)} below active-note gate`;
   }
 
   if (frame.frequency === null || frame.midi === null || frame.centsOff === null) {

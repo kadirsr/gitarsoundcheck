@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { calculateNoteActivity } from "../lib/audio/noteActivity";
 import { createPitchFrame } from "../lib/audio/pitchDetection";
 import type {
   AudioDiagnostics,
@@ -17,10 +18,6 @@ type AudioStatus =
   | "error";
 
 const ANALYSIS_GAIN = 10;
-const NOTE_ACTIVE_MIN_RMS_MULTIPLIER = 2;
-const NOTE_ACTIVE_MIN_PEAK_MULTIPLIER = 4;
-const NOTE_ACTIVE_PEAK_RATIO = 1.8;
-const NOTE_ACTIVE_RMS_RATIO = 2.8;
 const SIGNAL_PEAK_FLOOR = 0.00001;
 
 function createIdleDiagnostics(): AudioDiagnostics {
@@ -333,58 +330,6 @@ function hasUsableSignal(buffer: Float32Array): boolean {
     }
   }
   return false;
-}
-
-function calculateNoteActivity(
-  frame: PitchFrame,
-  minRms: number,
-  currentNoiseFloorRms: number,
-  currentNoiseFloorPeak: number,
-  wasActive: boolean
-): {
-  activityRatio: number;
-  noiseFloorPeak: number;
-  noiseFloorRms: number;
-  noteActive: boolean;
-  noteOnset: boolean;
-} {
-  const rms = frame.rms;
-  const peak = frame.peak ?? 0;
-  const floorRms =
-    currentNoiseFloorRms > 0 ? currentNoiseFloorRms : Math.max(minRms, rms);
-  const floorPeak =
-    currentNoiseFloorPeak > 0
-      ? currentNoiseFloorPeak
-      : Math.max(minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER, peak);
-  const rmsThreshold = Math.max(
-    minRms * NOTE_ACTIVE_MIN_RMS_MULTIPLIER,
-    floorRms * NOTE_ACTIVE_RMS_RATIO
-  );
-  const peakThreshold = Math.max(
-    minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER,
-    floorPeak * NOTE_ACTIVE_PEAK_RATIO
-  );
-  const noteActive = rms >= rmsThreshold && peak >= peakThreshold;
-  const nextFloorRms = noteActive ? floorRms : smoothNoiseFloor(floorRms, rms, minRms);
-  const nextFloorPeak = noteActive
-    ? floorPeak
-    : smoothNoiseFloor(floorPeak, peak, minRms * NOTE_ACTIVE_MIN_PEAK_MULTIPLIER);
-
-  return {
-    activityRatio: rms / Math.max(minRms, floorRms),
-    noiseFloorPeak: nextFloorPeak,
-    noiseFloorRms: nextFloorRms,
-    noteActive,
-    noteOnset: noteActive && !wasActive
-  };
-}
-
-function smoothNoiseFloor(current: number, next: number, minimum: number): number {
-  if (current === 0) {
-    return Math.max(minimum, next);
-  }
-
-  return Math.max(minimum, current * 0.96 + next * 0.04);
 }
 
 function normalizeContextState(state: AudioContextState): AudioDiagnostics["contextState"] {

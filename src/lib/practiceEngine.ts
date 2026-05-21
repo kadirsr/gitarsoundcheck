@@ -1,4 +1,5 @@
 import { STABLE_NOTE_MS, STEP_WIDTH, TOLERANCE_CENTS } from "../constants";
+import { isPlayablePitchFrame } from "./audio/noteActivity";
 import type {
   ParsedNote,
   PitchFrame,
@@ -111,7 +112,7 @@ export function evaluatePitchFrame(
     return { ...state, stableSince: null };
   }
 
-  if (frame.noteActive === false) {
+  if (!isPlayablePitchFrame(frame)) {
     return { ...state, stableSince: null };
   }
 

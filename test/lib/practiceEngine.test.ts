@@ -84,6 +84,46 @@ describe("practiceEngine", () => {
     expect(state.wrongCount).toBe(0);
   });
 
+  it("does not accept target fallback matches as played notes", () => {
+    let state = startPractice(createPracticeState(), 0);
+    const frame: PitchFrame = {
+      frequency: 146.83,
+      midi: 50,
+      noteName: "D3",
+      centsOff: 0,
+      rms: 0.08,
+      peak: 0.2,
+      confidence: 1,
+      detectionMethod: "target",
+      noteActive: true,
+      timestamp: 120
+    };
+
+    state = evaluatePitchFrame(state, notes, frame, "NORMAL");
+    expect(state.currentIndex).toBe(0);
+    expect(state.correctCount).toBe(0);
+  });
+
+  it("does not accept low-confidence pitchy frames", () => {
+    let state = startPractice(createPracticeState(), 0);
+    const frame: PitchFrame = {
+      frequency: 146.83,
+      midi: 50,
+      noteName: "D3",
+      centsOff: 0,
+      rms: 0.08,
+      peak: 0.2,
+      confidence: 0.76,
+      detectionMethod: "pitchy",
+      noteActive: true,
+      timestamp: 120
+    };
+
+    state = evaluatePitchFrame(state, notes, frame, "NORMAL");
+    expect(state.currentIndex).toBe(0);
+    expect(state.correctCount).toBe(0);
+  });
+
   it("marks flow mode notes correct without waiting for stability", () => {
     const state = startPractice(createPracticeState(60, "FLOW"), 0);
     const frame: PitchFrame = {
