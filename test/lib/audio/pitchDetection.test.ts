@@ -7,6 +7,7 @@ describe("pitchDetection", () => {
   it("detects a fretted D-string G note", () => {
     const frame = createPitchFrame(createSineWave(196, 4096), SAMPLE_RATE, 0, 0.001);
 
+    expect(frame.detectionMethod).toBe("pitchy");
     expect(frame.noteName).toBe("G3");
     expect(frame.midi).toBe(55);
     expect(frame.peak).toBeGreaterThan(0.3);
@@ -28,7 +29,7 @@ describe("pitchDetection", () => {
   });
 
   it("accepts the expected note from spectral harmonic energy", () => {
-    const frame = createPitchFrame(createNoise(8192), SAMPLE_RATE, 0, 0.001, {
+    const frame = createPitchFrame(createUnpitchedNoise(8192), SAMPLE_RATE, 0, 0.001, {
       fftSize: 8192,
       frequencyData: createTargetSpectrum(196, 8192),
       target: { frequency: 196, midi: 55 }
@@ -40,7 +41,7 @@ describe("pitchDetection", () => {
   });
 
   it("keeps analysing quiet guitar input when it is above the lowered threshold", () => {
-    const frame = createPitchFrame(createNoise(8192, 0.0008), SAMPLE_RATE, 0, 0.0005, {
+    const frame = createPitchFrame(createUnpitchedNoise(8192, 0.0012), SAMPLE_RATE, 0, 0.0005, {
       fftSize: 8192,
       frequencyData: createTargetSpectrum(146.83, 8192),
       target: { frequency: 146.83, midi: 50 }
@@ -91,6 +92,14 @@ function createNoise(length: number, amplitude = 0.02): Float32Array {
   return Float32Array.from({ length }, (_, index) =>
     Math.sin(index * 1.37) * amplitude
   );
+}
+
+function createUnpitchedNoise(length: number, amplitude = 0.02): Float32Array {
+  let seed = 123456789;
+  return Float32Array.from({ length }, () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return ((seed / 0xffffffff) * 2 - 1) * amplitude;
+  });
 }
 
 function createTargetSpectrum(frequency: number, fftSize: number): Float32Array {

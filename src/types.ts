@@ -47,7 +47,7 @@ export type PitchFrame = {
   confidence: number;
   timestamp: number;
   activityRatio?: number;
-  detectionMethod?: "none" | "yin" | "mpm" | "target";
+  detectionMethod?: "none" | "pitchy" | "yin" | "mpm" | "target";
   inputThreshold?: number;
   noiseFloorRms?: number;
   noteActive?: boolean;

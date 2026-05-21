@@ -20,3 +20,4 @@
 2026-05-19T18:00:39+03:00 | Console screenshot: RMS 0.0006, targetScore null, detected -, D string fret 0; pitch detector still does not lock.
 2026-05-19T18:10:30+03:00 | RMS 0.0000 hic oynamiyor, sabit kaldi; duzelt artik, bir yol bul.
 2026-05-21T13:10:20+03:00 | RMS degisiyor ama calmadan da yesil oluyor; Aubio.js, Pitchfinder, CREPE/SPICE ve Meyda.js alternatiflerini degerlendir.
+2026-05-21T13:28:47+03:00 | kutuphane denemedin mi daha

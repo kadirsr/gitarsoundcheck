@@ -1,3 +1,4 @@
+import { PitchDetector } from "pitchy";
 import { MIN_RMS } from "../../constants";
 import type { PitchFrame, PitchTarget } from "../../types";
 import {
@@ -10,8 +11,10 @@ const MIN_GUITAR_FREQUENCY = 70;
 const MAX_GUITAR_FREQUENCY = 1400;
 const YIN_THRESHOLD = 0.18;
 const YIN_FALLBACK_THRESHOLD = 0.35;
+const PITCHY_CLARITY_THRESHOLD = 0.72;
 const MPM_CLARITY_THRESHOLD = 0.45;
 const TARGET_SCORE_THRESHOLD = 2.4;
+const pitchyDetectors = new Map<number, PitchDetector<Float32Array>>();
 
 export function createPitchFrame(
   buffer: Float32Array,
@@ -31,6 +34,28 @@ export function createPitchFrame(
       inputThreshold: minRms,
       rejectionReason: "rms-low"
     });
+  }
+
+  const pitchResult = detectPitch(buffer, sampleRate);
+  const frequency = pitchResult?.frequency ?? null;
+  if (frequency !== null) {
+    const midi = frequencyToMidi(frequency);
+    const centsOff = centsOffFromMidi(frequency, midi);
+
+    return {
+      frequency,
+      midi,
+      noteName: midiToNoteName(midi),
+      centsOff,
+      rms,
+      peak,
+      confidence: pitchResult?.confidence ?? Math.max(0, Math.min(1, rms * 20)),
+      timestamp,
+      detectionMethod: pitchResult?.method ?? "none",
+      inputThreshold: minRms,
+      targetScore: undefined,
+      targetRatio: undefined
+    };
   }
 
   const targetResult =
@@ -60,34 +85,12 @@ export function createPitchFrame(
     };
   }
 
-  const pitchResult = detectPitch(buffer, sampleRate);
-  const frequency = pitchResult?.frequency ?? null;
-  if (frequency === null) {
-    return emptyPitchFrame(rms, peak, timestamp, {
-      inputThreshold: minRms,
-      rejectionReason: "no-lock",
-      targetScore: targetResult?.score,
-      targetRatio: targetResult?.harmonicHits
-    });
-  }
-
-  const midi = frequencyToMidi(frequency);
-  const centsOff = centsOffFromMidi(frequency, midi);
-
-  return {
-    frequency,
-    midi,
-    noteName: midiToNoteName(midi),
-    centsOff,
-    rms,
-    peak,
-    confidence: Math.max(0, Math.min(1, rms * 20)),
-    timestamp,
-    detectionMethod: pitchResult?.method ?? "none",
+  return emptyPitchFrame(rms, peak, timestamp, {
     inputThreshold: minRms,
+    rejectionReason: "no-lock",
     targetScore: targetResult?.score,
     targetRatio: targetResult?.harmonicHits
-  };
+  });
 }
 
 export function calculateRms(buffer: Float32Array): number {
@@ -109,8 +112,17 @@ function calculatePeak(buffer: Float32Array): number {
 function detectPitch(
   buffer: Float32Array,
   sampleRate: number
-): { frequency: number; method: "yin" | "mpm" } | null {
+): { confidence: number; frequency: number; method: "pitchy" | "yin" | "mpm" } | null {
   const normalized = removeDcOffset(buffer);
+  const pitchyFrequency = detectPitchWithPitchy(normalized, sampleRate);
+  if (pitchyFrequency !== null) {
+    return {
+      confidence: pitchyFrequency.clarity,
+      frequency: pitchyFrequency.frequency,
+      method: "pitchy"
+    };
+  }
+
   const clipped = centerClip(normalized);
   const tauMin = Math.max(2, Math.floor(sampleRate / MAX_GUITAR_FREQUENCY));
   const tauMax = Math.min(
@@ -119,11 +131,52 @@ function detectPitch(
   );
   const yinFrequency = detectPitchWithYin(clipped, sampleRate, tauMin, tauMax);
   if (yinFrequency !== null) {
-    return { frequency: yinFrequency, method: "yin" };
+    return {
+      confidence: Math.max(0, Math.min(1, calculateRms(clipped) * 24)),
+      frequency: yinFrequency,
+      method: "yin"
+    };
   }
 
   const mpmFrequency = detectPitchWithMpm(clipped, sampleRate, tauMin, tauMax);
-  return mpmFrequency === null ? null : { frequency: mpmFrequency, method: "mpm" };
+  return mpmFrequency === null
+    ? null
+    : {
+        confidence: Math.max(0, Math.min(1, calculateRms(clipped) * 24)),
+        frequency: mpmFrequency,
+        method: "mpm"
+      };
+}
+
+function detectPitchWithPitchy(
+  buffer: Float32Array,
+  sampleRate: number
+): { clarity: number; frequency: number } | null {
+  const detector = getPitchyDetector(buffer.length);
+  detector.clarityThreshold = PITCHY_CLARITY_THRESHOLD;
+  detector.minVolumeAbsolute = 0;
+  const [frequency, clarity] = detector.findPitch(buffer, sampleRate);
+
+  if (
+    clarity < PITCHY_CLARITY_THRESHOLD ||
+    frequency < MIN_GUITAR_FREQUENCY ||
+    frequency > MAX_GUITAR_FREQUENCY
+  ) {
+    return null;
+  }
+
+  return { clarity, frequency };
+}
+
+function getPitchyDetector(length: number): PitchDetector<Float32Array> {
+  const existing = pitchyDetectors.get(length);
+  if (existing) {
+    return existing;
+  }
+
+  const detector = PitchDetector.forFloat32Array(length);
+  pitchyDetectors.set(length, detector);
+  return detector;
 }
 
 function detectPitchWithYin(
